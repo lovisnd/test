@@ -1,0 +1,44 @@
+package com.tiankui.reactService.controller;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.tiankui.reactService.service.IStatisticService;
+
+@Controller
+@RequestMapping(value = "/api/statistic")
+public class StatisticController {
+	
+	@Autowired
+	private IStatisticService statisticService;
+	
+	@ResponseBody
+	@RequestMapping(value = "/online")
+	public Map<String,Object> getOnline(){
+		Map<String,Object> result = new HashMap<String,Object>();
+		Map<String,Object> map = statisticService.getOnline();
+		result.put("pillarData", map.get("pillarData"));
+		result.put("cakeData", map.get("cakeData"));
+		result.put("status", 1);
+		result.put("message", "查询成功");
+		return result;
+	}
+	
+	@ResponseBody
+	@RequestMapping(value = "/deviceType")
+	public Map<String,Object> getDeviceType(){
+		Map<String,Object> result = new HashMap<String,Object>();
+		Map<String,Object> map = statisticService.getDeviceType();
+		result.put("deviceData", map.get("deviceData"));
+		result.put("deviceDescData", map.get("deviceDescData"));
+		result.put("status", 1);
+		result.put("message", "查询成功");
+		return result;
+	}
+
+}

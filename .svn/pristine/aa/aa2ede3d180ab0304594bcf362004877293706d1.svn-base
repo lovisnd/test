@@ -1,0 +1,83 @@
+package com.tiankui.reactService.service.impl;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.tiankui.reactService.entity.Role;
+import com.tiankui.reactService.entity.User;
+import com.tiankui.reactService.mapper.RoleMapper;
+import com.tiankui.reactService.mapper.UserMapper;
+import com.tiankui.reactService.service.IRoleService;
+import com.tiankui.reactService.util.ObjectUtil;
+import com.tiankui.reactService.util.UUIDUtil;
+
+@Service
+public class RoleService implements IRoleService {
+
+	@Autowired
+	private RoleMapper roleMapper;
+	@Autowired
+	private UserMapper userMapper;
+	
+	@Override
+	public List<Role> getListByExample(Map<String, Object> map) {
+		System.out.println(map.get("name"));
+		if (ObjectUtil.isNotNull(map.get("name"))) {
+			map.put("name", "%"+map.get("name")+"%");
+		}
+		int start = Integer.valueOf(map.get("start").toString());
+		int limit = Integer.valueOf(map.get("limit").toString());
+		map.put("start", start + 1);
+		map.put("limit", limit + start);
+		List<Role> list = roleMapper.getListByExample(map);
+		return list;
+	}
+
+	@Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+	@Override
+	public int addRole(Map<String, Object> map) {
+		String uuid = UUIDUtil.getUUID();
+		map.put("id", uuid);
+		map.put("createTime", new Date().getTime());
+		map.put("updateTime", new Date().getTime());
+		int result = roleMapper.addRole(map);
+		return result;
+	}
+
+	@Override
+	public Role getRoleById(String id) {
+		Role role = roleMapper.selectExampleById(id);
+		return role;
+	}
+
+	@Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+	@Override
+	public int modifyRole(String id,Map<String, Object> map) {
+		map.put("id", id);
+		if (ObjectUtil.isNull(map.get("description"))) {
+			map.put("description", "");
+		}
+		map.put("updateTime", new Date().getTime());
+		int result = roleMapper.updateRole(map);
+		return result;
+	}
+
+	@Override
+	public List<User> queryUserByRoleId(String id) {
+		List<User> list = userMapper.queryUserByRid(id);
+		return list;
+	}
+
+	@Override
+	public int getCountList(Map<String, Object> map) {
+		return roleMapper.getCount(map);
+	}
+
+}

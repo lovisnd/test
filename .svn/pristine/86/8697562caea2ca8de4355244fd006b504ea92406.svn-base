@@ -1,0 +1,51 @@
+package com.tiankui.reactService.timeTask;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+
+import com.tiankui.reactService.service.IWorkOrderService;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+
+import com.tiankui.reactService.service.impl.WorkOrderService;
+import com.tiankui.reactService.util.ExcelUtils;
+
+public class ImportTask {
+
+	@Autowired
+	private IWorkOrderService workOrderService;
+
+	private static Logger logger = Logger.getLogger(WorkOrderService.class);
+
+	@Value("#{prop.filePath}")
+	private String tieTongSrc;
+
+	public void importWorkOrder() {
+		FileInputStream fis = null;
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+		String format = sdf.format(new Date());
+		String fileSrc = tieTongSrc + "铁通工单" + format + ".xlsx";
+		File file = new File(fileSrc);
+		if (!file.exists()) {
+			logger.error(fileSrc+"文件不存在！");
+		} else {
+			try {
+				fis = new FileInputStream(file);
+				List<List<Object>> list = ExcelUtils.getBankListByExcel(fis, file.getName());
+				logger.error("铁通工单开始导入");
+				long currentTime = System.currentTimeMillis();
+//				int batchNum = insertBatch(insertList);
+				workOrderService.ttWorkOrderInsert(fileSrc,list);
+				long endTime = System.currentTimeMillis();
+				logger.error("用时【"+ (endTime - currentTime)  +"ms】");
+//				System.out.println(list.size());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
+}

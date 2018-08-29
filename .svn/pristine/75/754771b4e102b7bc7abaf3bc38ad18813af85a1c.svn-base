@@ -1,0 +1,256 @@
+package com.tiankui.reactService.controller;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import com.tiankui.reactService.entity.GuestInfo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
+
+import com.tiankui.reactService.entity.Result;
+import com.tiankui.reactService.entity.ResultArray;
+import com.tiankui.reactService.entity.WorkOrder;
+import com.tiankui.reactService.service.IWorkOrderService;
+import com.tiankui.reactService.util.CSVUtil;
+import com.tiankui.reactService.util.ExcelUtils;
+import com.tiankui.reactService.util.ObjectUtil;
+
+/**
+ * @author zhouao
+ * @ClassName: WorkOrderController
+ * @Description: TODO 工单处理接入层
+ * @date 2018年7月30日
+ */
+@RestController
+@RequestMapping("/api/workOrder")
+public class WorkOrderController {
+
+    @Autowired
+    private IWorkOrderService workOrderService;
+
+    /**
+     * @param request
+     * @return Result<Integer> 返回类型
+     * @throws Exception 参数
+     * @Title: doImport
+     * @Description: TODO 工单信息导入
+     */
+    @RequestMapping(value = "/upload", method = {RequestMethod.GET, RequestMethod.POST})
+    public Result<Integer> doImport(HttpServletRequest request, @RequestParam String token) {
+        Result<Integer> result = new Result<Integer>();
+        MultipartHttpServletRequest multipartRequest = (MultipartHttpServletRequest) request;
+        InputStream in = null;
+        MultipartFile file = multipartRequest.getFile("file");
+        if (file.isEmpty()) {
+            try {
+                throw new Exception("文件不存在！");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        try {
+            in = file.getInputStream();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        List<List<Object>> listob = null;
+        if (file.getOriginalFilename().toString().endsWith(".csv")) {
+            listob = CSVUtil.getBankListByCSV(in, file.getOriginalFilename());
+        } else {
+            listob = ExcelUtils.getBankListByExcel(in, file.getOriginalFilename());
+        }
+        try {
+            in.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        int upload = workOrderService.upload(listob, token, file.getOriginalFilename());
+        if (0 == upload) {
+            result.setStatus(upload);
+            result.setMessage("文件记录有错误！请检查！");
+        }
+        if (-1 == upload) {
+            result.setStatus(upload);
+            result.setMessage("文件导入失败！");
+        }
+        if (1 == upload) {
+            result.setStatus(upload);
+            result.setMessage("文件导入成功！");
+        }
+        return result;
+    }
+
+    /**
+     * @Title: list @Description: TODO 获取工单信息列表 @param map 参数 @return
+     * Result<List<WorkOrder>> 返回类型 @throws
+     */
+    @RequestMapping(value = "/list")
+    public Result<List<WorkOrder>> list(@RequestBody Map<String, Object> map) {
+        Result<List<WorkOrder>> result = new Result<List<WorkOrder>>();
+        List<WorkOrder> list = workOrderService.getListByMap(map);
+        int count = workOrderService.getCountList(map);
+        result.setData(list);
+        result.setCount(count);
+        result.setStatus(1);
+        result.setMessage("查询成功！");
+        return result;
+    }
+
+    /**
+     * @param @param  id
+     * @param @return 参数
+     * @return ResultArray<User>    返回类型
+     * @throws
+     * @Title: getGuestInfoById
+     * @Description: TODO 根据ID查询客户信息
+     */
+    @RequestMapping(value = "/query")
+    public ResultArray<WorkOrder> getWorkOrderById(@RequestParam String id) {
+        WorkOrder order = workOrderService.getOrderById(id);
+        ResultArray<WorkOrder> result = new ResultArray<WorkOrder>();
+        result.setMessage("查询成功！");
+        if (ObjectUtil.isNotNull(order)) {
+            WorkOrder[] workOrders = {order};
+            result.setData(workOrders);
+            result.setStatus(1);
+        } else {
+            result.setData(null);
+            result.setStatus(0);
+        }
+        return result;
+    }
+
+    /**
+     * @param @param  id
+     * @param @return 参数
+     * @return ResultArray<User>    返回类型
+     * @throws
+     * @Title: getGuestInfoById
+     * @Description: TODO 根据ID查询客户信息
+     */
+    @RequestMapping(value = "/queryDetail")
+    public Result<Map<String, Object>> getOrderById(@RequestParam String id) {
+        Map<String, Object> orderMap = workOrderService.getWorkOrderById(id);
+        Result<Map<String, Object>> result = new Result<Map<String, Object>>();
+        result.setMessage("查询成功！");
+        if (ObjectUtil.isNotNull(orderMap)) {
+            result.setData(orderMap);
+            result.setStatus(1);
+        } else {
+            result.setData(null);
+            result.setStatus(0);
+        }
+        return result;
+    }
+
+    /**
+     * 导出工单信息
+     *
+     * @param map
+     * @param request
+     * @param response
+     */
+    @RequestMapping(value = "/export")
+    public void export(@RequestParam Map<String, Object> map, HttpServletRequest request,
+                       HttpServletResponse response) {
+        String[] excelHeader = {"工单编号", "工单类型", "投诉号码", "上网账号", "客户名称", "客户家庭地址", "客户所在城市", "客户所在区县", "投诉内容", "工单创建时间", "接单时间--铁通", "最后一次回访时间", "投诉问题是否解决成功", "工单处理人-装维人员", "装维人员所在网格区域", "故障类型", "装维人员处理时长/min", "是否处理超时", "客调员-铁通", "工单状态", "外呼方式", "用户满意情况", "创建时间", "创建人"};
+        String[] ds_titles = {"orderNo", "orderType", "complaintPhoneno", "internetAccount", "guestName", "guestAddress", "city", "area", "complaintContent", "orderCreateDate", "takeOrderDateTt", "lastReturnOrderDate", "isSuccess", "orderHandler", "handlerChangeArea", "faultType", "handleMin", "isTimeout", "intervenePerson", "orderStatus", "callOutWay", "isSatisfaction", "createDate", "creater"};
+        int[] ds_format = {1, 1, 1, 1, 1, 1, 1, 1, 1, 7, 7, 7, 8, 1, 1, 1, 1, 8, 1, 1, 1, 1, 7, 1};
+        int[] widths = {256 * 30, 256 * 10, 256 * 15, 256 * 15, 256 * 15, 256 * 45, 256 * 15, 256 * 15, 256 * 60, 256 * 20, 256 * 20, 256 * 20, 256 * 25, 256 * 20, 256 * 45, 256 * 15, 256 * 28, 256 * 15, 256 * 15, 256 * 15, 256 * 15, 256 * 15, 256 * 20, 256 * 15};
+        List<Map<String, Object>> list = workOrderService.getList(map);
+        try {
+            ExcelUtils.export("工单信息表", "工单信息", excelHeader, ds_titles, ds_format, widths, list, request, response);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 删除工单信息
+     * @param id
+     * @return
+     */
+    @RequestMapping(value = "/del")
+    public Result<Integer> delOrder(@RequestParam String id){
+        int resultNum = workOrderService.delOrderId(id);
+        Result<Integer> result = new Result<Integer>();
+        if (resultNum == 1) {
+            result.setData(resultNum);
+            result.setStatus(1);
+            result.setMessage("删除成功！");
+        }else{
+            result.setData(resultNum);
+            result.setStatus(0);
+            result.setMessage("删除失败！");
+        }
+        return result;
+    }
+
+    /**
+     * 根据工单号查询工单信息
+     * @param id
+     * @return
+     */
+    @RequestMapping(value = "/orderNo")
+    public Result<Integer> getOrderNo(@RequestParam String id){
+        int num = workOrderService.getOrderNo(id);
+        Result<Integer> result = new Result<Integer>();
+        result.setData(num);
+        result.setStatus(1);
+        result.setMessage("查询成功！");
+        return result;
+    }
+
+    /**
+     *
+     * @param map
+     * @param token
+     * @return
+     */
+    @RequestMapping(value = "/add")
+    public Result<Integer> addGuestInfo(@RequestBody Map<String,Object> map,@RequestParam String token){
+        Result<Integer> result = new Result<Integer>();
+        map.put("token", token);
+        int resultNum = workOrderService.addWorkOrder(map);
+        result.setData(resultNum);
+        if (resultNum == 1) {
+            result.setStatus(1);
+            result.setMessage("添加成功！");
+        }
+        return result;
+    }
+
+    /**
+     *
+     * @param map
+     * @param id
+     * @return
+     */
+    @RequestMapping(value = "/edit")
+    public Result<Integer> editGuestInfo(@RequestParam String id, @RequestBody Map<String, Object> map){
+        int resultNum = workOrderService.updateWorkOrder(id,map);
+        Result<Integer> result = new Result<Integer>();
+        if (resultNum == 1) {
+            result.setData(resultNum);
+            result.setStatus(1);
+            result.setMessage("修改成功！");
+        }else{
+            result.setData(resultNum);
+            result.setStatus(0);
+            result.setMessage("修改失败！");
+        }
+        return result;
+    }
+}

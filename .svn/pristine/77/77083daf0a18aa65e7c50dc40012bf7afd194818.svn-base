@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.tiankui.reactService.mapper.JkWorkOrderMapper">
+    <resultMap id="BaseResultMap" type="com.tiankui.reactService.entity.JkWorkOrder">
+        <id column="JKORDER_NO" property="jkOrderNo" jdbcType="VARCHAR"/>
+        <result column="CITY" property="city" jdbcType="VARCHAR"/>
+        <result column="AREA" property="area" jdbcType="VARCHAR"/>
+        <result column="PHONE_NO" property="phoneNo"
+                jdbcType="VARCHAR"/>
+        <result column="GUEST_NAME" property="guestName"
+                jdbcType="VARCHAR"/>
+        <result column="CLIQUE_NAME" property="cliqueName" jdbcType="VARCHAR"/>
+        <result column="CLIQUE_NO" property="cliqueNo"
+                jdbcType="VARCHAR"/>
+        <result column="CLIQUE_ADDRESS" property="cliqueAddress" jdbcType="VARCHAR"/>
+        <result column="COMPLAIN_CONTENT" property="complainContent" jdbcType="VARCHAR"/>
+        <result column="DISTRIBUTE_PERSON" property="distributePerson"
+                jdbcType="VARCHAR"/>
+        <result column="TAKE_ORDER_DATE" property="takeOrderDate"
+                jdbcType="BIGINT"/>
+        <result column="FAULT_TYPE" property="faultType"
+                jdbcType="VARCHAR"/>
+        <result column="IS_TRANSPOND" property="isTranspond"
+                jdbcType="INTEGER"/>
+        <result column="TRANSPOND_PERSON" property="transpondtPerson" jdbcType="VARCHAR"/>
+        <result column="TRANSPOND_TAKE_ORDER_DATE" property="transpondTakeOrderDate"
+                jdbcType="BIGINT"/>
+        <result column="ORDER_HANDLER" property="orderHandler"
+                jdbcType="VARCHAR"/>
+        <result column="RETURN_ORDER_DATE" property="returnOrderDate" jdbcType="BIGINT"/>
+        <result column="FAULT_RESON" property="faultReson" jdbcType="VARCHAR"/>
+        <result column="HANDLE_MIN" property="handleMin" jdbcType="INTEGER"/>
+        <result column="IS_SUCCESS" property="isSuccess"
+                jdbcType="INTEGER"/>
+        <result column="IS_TIMEOUT" property="isTimeout" jdbcType="INTEGER"/>
+        <result column="CALL_OUT_WAY" property="callOutWay" jdbcType="INTEGER"/>
+        <result column="IS_SATISFACTION" property="isSatisfaction"
+                jdbcType="INTEGER"/>
+         <result column="ORDER_STATE" property="orderState"
+                jdbcType="VARCHAR"/>        
+        <result column="CREATE_DATE" property="createDate" jdbcType="BIGINT"/>
+        <result column="CREATER" property="creater" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+		ID,CITY,AREA,PHONE_NO,GUEST_NAME,CLIQUE_NAME,CLIQUE_NO,CLIQUE_ADDRESS,COMPLAIN_CONTENT,DISTRIBUTE_PERSON,TAKE_ORDER_DATE,FAULT_TYPE,IS_TRANSPOND,TRANSPOND_PERSON,TRANSPOND_TAKE_ORDER_DATE,ORDER_HANDLER,RETURN_ORDER_DATE,FAULT_RESON,HANDLE_MIN,IS_SUCCESS,IS_TIMEOUT,CALL_OUT_WAY,IS_SATISFACTION,ORDER_STATE,CREATE_DATE,CREATER,JKORDER_NO
+	</sql>
+	
+    <select id="getListByMap" parameterType="java.util.Map" resultMap="BaseResultMap">
+        SELECT * FROM(SELECT A.*, ROWNUM RN
+        FROM (
+        select
+        <include refid="Base_Column_List"/>
+        from TD_ORDER_JK_INFO
+        <where>
+            <if test="jkOrderNo != null and jkOrderNo != ''">
+                JKORDER_NO like #{jkOrderNo}
+            </if>
+            <if test="orderState != null and orderState != ''">
+                and ORDER_STATE like #{orderState}
+            </if>
+            <if test="phoneNo != null and phoneNo != ''">
+                and PHONE_NO like #{phoneNo}
+            </if>
+            <if test="area != null and area != ''">
+                and AREA like #{area}
+            </if>
+            <if test="cliqueName != null and cliqueName != ''">
+                and CLIQUE_NAME like #{cliqueName}
+            </if>
+            <if test="orderHandler != null and orderHandler != ''">
+                and ORDER_HANDLER like #{orderHandler}
+            </if>
+        </where>
+        order by CREATE_DATE desc) A)
+        WHERE RN BETWEEN #{start} AND #{limit}
+    </select>
+
+ <select id="getCountListByMap" parameterType="java.lang.String"
+            resultType="java.lang.Integer">
+        select
+        count(*)
+        from TD_ORDER_JK_INFO
+        <where>
+             <if test="jkOrderNo != null and jkOrderNo != ''">
+                JKORDER_NO like #{jkOrderNo}
+            </if>
+            <if test="orderState != null and orderState != ''">
+                and ORDER_STATE like #{orderState}
+            </if>
+            <if test="phoneNo != null and phoneNo != ''">
+                and PHONE_NO like #{phoneNo}
+            </if>
+            <if test="area != null and area != ''">
+                and AREA = #{area}
+            </if>
+            <if test="cliqueName != null and cliqueName != ''">
+                and CLIQUE_NAME = #{cliqueName}
+            </if>
+            <if test="orderHandler != null and orderHandler != ''">
+                and ORDER_HANDLER = #{orderHandler}
+            </if>
+        </where>
+    </select>
+
+   <insert id="save" parameterType="com.tiankui.reactService.entity.JkWorkOrder">
+		insert into TD_ORDER_JK_INFO (<include refid="Base_Column_List"/>)
+		values (#{id},#{city},#{area},#{phoneNo},#{guestName},#{cliqueName},#{cliqueNo},#{cliqueAddress},#{complainContent},#{distributePerson},#{takeOrderDate},#{faultType},#{isTranspond},#{isSuccess},#{transpondTakeOrderDate},#{orderHandler},#{returnOrderDate},#{faultReson},#{handleMin},#{isSuccess},#{isTimeout},#{callOutWay},#{isSatisfaction},#{orderState},#{createDate},#{creater},#{jkOrderNo})
+   </insert>
+	
+   <select id="getOrderByJkOrderNo" parameterType="java.lang.String" resultMap="BaseResultMap">
+    	select <include refid="Base_Column_List"/> from TD_ORDER_JK_INFO where JKORDER_NO = #{jkOrderNo}
+   </select>
+   
+   <select id="getJkWorkOrderById" parameterType="java.lang.String" resultMap="BaseResultMap">
+    	select <include refid="Base_Column_List"/> from TD_ORDER_JK_INFO where ID = #{id}
+   </select>
+   <update id="updateJkWorkOrderInfo" parameterType="com.tiankui.reactService.entity.JkWorkOrder">
+   	    update 
+   	    TD_ORDER_JK_INFO 
+   	    SET IS_SATISFACTION = #{isSatisfaction},ORDER_STATE = #{orderState},CALL_OUT_WAY =#{callOutWay} 
+   	    WHERE ID = #{id}
+   </update>
+   
+   
+   
+   <select id="getList" parameterType="java.util.Map" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List"/>
+    from TD_ORDER_JK_INFO
+    <where>
+        <if test="jkOrderNo != null and jkOrderNo != ''">
+            JKORDER_NO like #{jkOrderNo}
+        </if>
+        <if test="phoneNo != null and phoneNo != ''">
+            and PHONE_NO like #{phoneNo}
+        </if>
+        <if test="cliqueName != null and cliqueName != ''">
+            and CLIQUE_NAME like #{cliqueName}
+        </if>
+        <if test="cliqueNo != null and cliqueNo != ''">
+            and CLIQUE_NO like #{cliqueNo}
+        </if>
+        <if test="cliqueAddress != null and cliqueAddress != ''">
+            and CLIQUE_ADDRESS like #{cliqueAddress}
+        </if>
+        <if test="area != null and area != ''">
+            and AREA = #{area}
+        </if>
+        <if test="orderState != null and orderState != ''">
+            and ORDER_STATE = #{orderState}
+        </if>
+    </where>
+    order by CREATE_DATE desc
+	</select>
+	
+	<select id="getNotArchiveOrder" resultMap="BaseResultMap">
+		select <include refid="Base_Column_List"/> from TD_ORDER_JK_INFO where ORDER_STATE &lt;&gt; 3
+	</select>
+	
+	<update id="archiveOrder" parameterType="java.util.List">
+		<foreach collection="list" item="item" index="index" open="begin"
+			close=";end;" separator=";">
+			update TD_ORDER_JK_INFO
+			<set>
+				ORDER_STATE = 3
+			</set>
+			where ID = #{item.id}
+		</foreach>
+	</update>
+</mapper>

@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tiankui.reactService.mapper.UserMapper">
+    <resultMap type="com.tiankui.reactService.entity.User" id="BaseMap">
+        <result column="id" property="id" jdbcType="VARCHAR"/>
+        <result column="userName" property="uid" jdbcType="VARCHAR"/>
+        <result column="pwd" property="pwd" jdbcType="VARCHAR"/>
+        <result column="pwdUpdateTime" property="pwdUpdateTime"
+                jdbcType="BIGINT"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="deptId" property="deptId" jdbcType="VARCHAR"/>
+        <result column="deptName" property="deptName" jdbcType="VARCHAR"/>
+        <result column="phone" property="phone" jdbcType="VARCHAR"/>
+        <result column="email" property="email" jdbcType="VARCHAR"/>
+        <result column="enabled" property="enabled" jdbcType="INTEGER"/>
+        <result column="deleted" property="deleted" jdbcType="INTEGER"/>
+        <result column="createTime" property="createTime" jdbcType="BIGINT"/>
+        <result column="updateTime" property="updateTime" jdbcType="BIGINT"/>
+        <result column="token" property="token" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <sql id="BaseColumn">
+    id,userName,pwd,name,deptId,phone,email,enabled,deleted,createTime
+	</sql>
+
+    <select id="getUserByNameAndPassword" resultMap="BaseMap"
+            parameterType="com.tiankui.reactService.entity.User">
+		select * from t_s_user where userName = #{uid} and pwd =
+		#{pwd}
+	</select>
+
+    <update id="setTokenByUser" parameterType="com.tiankui.reactService.entity.User">
+		update t_s_user set
+		token = #{token} where userName = #{uid}
+	</update>
+
+    <select id="getTokenUser" resultMap="BaseMap" parameterType="java.lang.String">
+		select * from t_s_user where token = #{token}
+	</select>
+
+    <select id="getList" parameterType="java.util.Map" resultMap="BaseMap">
+        SELECT * FROM(SELECT A.*, ROWNUM RN
+        FROM (
+        SELECT tu.id, userName,
+        tu.name, deptId
+        , td.name AS deptName, phone, email, enabled,
+        tu.createTime, tu.updateTime, tu.token
+        FROM t_s_user tu
+        LEFT JOIN t_s_dept td ON
+        tu.deptId = td.id
+        <where>
+            <if test="roleId != null and roleId != ''">
+                tu.id in (select userId from t_s_user_role where roleId =
+                #{roleId})
+            </if>
+            <if test="name != null and name != ''">
+                and tu.name like #{name}
+            </if>
+            <if test="enabled != null and enabled != ''">
+                and tu.enabled = #{enabled}
+            </if>
+            <if test="deptNoList != null and deptNoList.size > 0">
+                and tu.deptId in
+                <foreach collection="deptNoList" item="item" index="index" open="("
+                         close=")" separator=",">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        order by CREATETIME desc) A)
+        WHERE RN BETWEEN #{start} AND #{limit}
+    </select>
+
+    <select id="getUserById" resultMap="BaseMap" parameterType="java.lang.String">
+		SELECT tu.*,td.name AS deptName
+        FROM t_s_user tu
+        LEFT JOIN t_s_dept td ON
+        tu.deptId = td.id
+        where tu.id = #{id} or tu.name=#{id}
+	</select>
+
+    <update id="updateUser" parameterType="java.util.Map">
+		update t_s_user set deptId
+		= #{deptId},email = #{email},name = #{name},phone = #{phone},updateTime = #{updateTime} where
+		userName = #{uid}
+	</update>
+
+    <update id="updateUserPassword" parameterType="java.util.Map">
+		update t_s_user
+		set pwd = #{newPwd},PWDUPDATETIME = #{pwdUpdateTime} where userName = #{uid}
+	</update>
+
+    <update id="updateUserEnabled" parameterType="com.tiankui.reactService.entity.User">
+		update t_s_user set
+		enabled = #{enabled} where userName = #{uid}
+	</update>
+
+    <insert id="insertUser" parameterType="com.tiankui.reactService.entity.User">
+		insert into
+		t_s_user(id,userName,pwd,name,deptId,phone,email,enabled,deleted,createTime)
+		values(#{id},#{uid},#{pwd},#{name},#{deptId},#{phone},#{email},#{enabled},#{deleted},#{createTime})
+	</insert>
+
+    <delete id="delUser" parameterType="java.lang.String">
+		delete from t_s_user where id
+		= #{id}
+	</delete>
+
+    <update id="resetPassword" parameterType="java.util.Map">
+		update t_s_user set pwd
+		= #{password},PWDUPDATETIME = #{pwdUpdateTime} where id = #{id}
+	</update>
+
+    <update id="clearToken" parameterType="java.lang.String">
+		update t_s_user set token
+		= '' where token = #{token}
+	</update>
+
+    <select id="getRoleByUserId" parameterType="java.lang.String"
+            resultType="com.tiankui.reactService.entity.Role">
+		select r.* from t_s_user_role ur,t_s_role r where ur.roleId
+		= r.id and ur.userId = #{id}
+	</select>
+
+    <select id="queryUserByRid" parameterType="java.lang.String"
+            resultMap="BaseMap">
+		select u.id,userName,name,enabled from T_S_USER u,T_S_USER_ROLE
+		ur where u.ENABLED = 1 and u.ID = ur.USERID and ur.ROLEID = #{id}
+	</select>
+
+    <select id="getCount" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) from t_s_user tu
+        <where>
+            <if test="roleId != null and roleId != ''">
+                tu.id in (select userId from t_s_user_role where roleId =
+                #{roleId})
+            </if>
+            <if test="name != null and name != ''">
+                and tu.name like #{name}
+            </if>
+            <if test="enabled != null and enabled != ''">
+                and tu.enabled = #{enabled}
+            </if>
+            <if test="deptNoList != null and deptNoList.size > 0">
+                and tu.deptId in
+                <foreach collection="deptNoList" item="item" index="index" open="("
+                         close=")" separator=",">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="getUserByDepts" parameterType="java.util.List" resultMap="BaseMap">
+        select
+        <include refid="BaseColumn"/>
+        from T_S_USER where ENABLED = 1 and deptId in
+        <foreach collection="list" item="item" index="index" open="("
+                 close=")" separator=",">
+            #{item}
+        </foreach>
+    </select>
+
+    <select id="getOptStaffss" resultMap="BaseMap">
+        select
+        u.id,
+        u.name
+        from T_S_USER u,T_S_USER_ROLE ur,T_S_ROLE r where u.ID = ur.USERID and ur.ROLEID = r.ID and r.NAME = '代维组'
+    </select>
+</mapper>

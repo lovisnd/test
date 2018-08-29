@@ -1,0 +1,60 @@
+package com.tiankui.reactService.service.impl;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.tiankui.reactService.entity.HWStatistic;
+import com.tiankui.reactService.mapper.DictGroupMapper;
+import com.tiankui.reactService.mapper.HWStatisticMapper;
+import com.tiankui.reactService.service.IHWStatisticService;
+import com.tiankui.reactService.util.ObjectUtil;
+
+/**
+ * 家庭客户工单统计分析
+ * @ClassName: HWStatisticService
+ * @Description: TODO(这里用一句话描述这个类的作用)
+ * @author zhouao
+ * @date 2018年8月13日
+ *
+ */
+@Service
+public class HWStatisticService implements IHWStatisticService{
+
+	@Autowired
+	private HWStatisticMapper hwStatisticMapper;
+	@Autowired
+	private DictGroupMapper dictGroupMapper;
+	
+	@Override
+	public HashMap<String,Object> getFaultType() {
+		List<HWStatistic> list = hwStatisticMapper.statisticByFault();
+		for (HWStatistic workOrder : list) {
+			String name = dictGroupMapper.getDictByCode(workOrder.getFaultType());
+			if (ObjectUtil.isNotNull(name)) {
+				workOrder.setFaultType(name);
+			}else{
+				workOrder.setFaultType("其他故障");
+			}
+		}
+		List<Map<String, Object>> arrayList = new ArrayList<Map<String,Object>>();
+		List<String> xAxis = new ArrayList<String>();
+		List<Integer> yAxis = new ArrayList<Integer>();
+		for (HWStatistic order : list) {
+			Map<String, Object> toMap = ObjectUtil.objectToMap(order);
+			arrayList.add(toMap);
+			xAxis.add(order.getFaultType());
+			yAxis.add(order.getSum());
+		}
+		HashMap<String,Object> map = new HashMap<String,Object>();
+		map.put("tableData", arrayList);
+		map.put("xAxis", xAxis);
+		map.put("yAxis", yAxis);
+		return map;
+	}
+
+}

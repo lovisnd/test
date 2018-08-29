@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.tiankui.reactService.mapper.RightMapper" >
+  
+  <resultMap type="com.tiankui.reactService.entity.RoleRight" id="RoleMap">
+  	<id column="id" property="id" jdbcType="VARCHAR" />
+  	<id column="roleId" property="roleId" jdbcType="VARCHAR" />
+  	<id column="menuId" property="menuId" jdbcType="VARCHAR" />
+  </resultMap>
+  
+  <insert id="saveRight" parameterType="com.tiankui.reactService.entity.RoleRight">
+  	insert into t_s_role_menu (id,roleId,menuId) values (#{id},#{roleId},#{menuId}) 
+  </insert>
+  
+  <delete id="delRightByRoleId" parameterType="java.lang.String">
+  	delete from t_s_role_menu where roleId = #{roleId}
+  </delete>
+  
+</mapper>

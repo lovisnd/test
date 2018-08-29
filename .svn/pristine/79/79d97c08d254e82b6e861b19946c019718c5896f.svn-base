@@ -1,0 +1,39 @@
+package com.tiankui.reactService.mapper;
+
+import java.util.List;
+import java.util.Map;
+
+import com.tiankui.reactService.entity.Dept;
+import com.tiankui.reactService.entity.DeptExample;
+import com.tiankui.reactService.entity.User;
+
+public interface DeptMapper {
+	
+	List<Dept> getListByExample(Map<String, Object> map);
+	
+	List<Dept> selectByExample(DeptExample example);
+
+	Dept selectByPrimaryKey(String id);
+
+	int updateDept(Map<String, Object> map);
+
+	int getSortByParentId(String parentId);
+	
+	String getCodeByParentId(String parentId);
+
+	int insertDept(Map<String, Object> map);
+
+	int delDept(String id);
+
+	String getCodeById(String parentId);
+
+	String getCodeByNullId();
+
+	/**
+	 * 查询子部门
+	 * @param id
+	 * @return
+	 */
+	List<Dept> getListByParentId(String id);
+
+}

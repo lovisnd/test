@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project-module
+  type="WEB"
+  name="laOrderService"
+  id="myeclipse.1531898134900"
+  context-root="/laOrderService"
+  j2ee-spec="1.7"
+  archive="laOrderService.war">
+  <attributes>
+    <attribute name="webrootdir" value="src/main/webapp" />
+  </attributes>
+</project-module>
+

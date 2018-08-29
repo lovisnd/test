@@ -1,0 +1,97 @@
+package com.tiankui.reactService.service.impl;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.tiankui.reactService.entity.TSyslog;
+import com.tiankui.reactService.entity.User;
+import com.tiankui.reactService.enums.LogLevel;
+import com.tiankui.reactService.enums.LogType;
+import com.tiankui.reactService.mapper.TSyslogMapper;
+import com.tiankui.reactService.mapper.UserMapper;
+import com.tiankui.reactService.service.ISyslogService;
+import com.tiankui.reactService.util.LoginUserCache;
+import com.tiankui.reactService.util.ObjectUtil;
+import com.tiankui.reactService.util.UUIDUtil;
+
+@Service
+public class SyslogService implements ISyslogService {
+
+	@Autowired
+	private TSyslogMapper syslogMapper;
+	@Autowired
+	private UserMapper userMapper;
+
+	@Override
+	public List<TSyslog> getAllLog(Map<String, Object> map) {
+		if (ObjectUtil.isNotNull(map.get("keywords"))) {
+			map.put("keywords", "%" + map.get("keywords") + "%");
+		}
+		if (ObjectUtil.isNotNull(map.get("userName"))) {
+			map.put("userName", "%" + map.get("userName") + "%");
+		}
+		if (ObjectUtil.isNotNull(map.get("address"))) {
+			map.put("address", "%" + map.get("address") + "%");
+		}
+		int start = Integer.valueOf(map.get("start").toString());
+		int limit = Integer.valueOf(map.get("limit").toString());
+		map.put("start", start + 1);
+		map.put("limit", limit + start);
+		List<TSyslog> list = syslogMapper.selectByExample(map);
+		for (TSyslog tSyslog : list) {
+			User user = userMapper.getUserById(tSyslog.getUserId());
+			tSyslog.setUserName(ObjectUtil.isNull(user) ? "操作人不存在" : user.getName());
+		}
+		return list;
+	}
+
+	@Override
+	public List<Map<String, Object>> selectLogType() {
+		List<Map<String, Object>> resultList = new ArrayList<Map<String, Object>>();
+		for (LogType logType : LogType.values()) {
+			Map<String, Object> hashMap = new HashMap<String,Object>();
+			hashMap.put("key",logType.getIndex());
+			hashMap.put("name",logType.getName());
+			resultList.add(hashMap);
+		}
+		return resultList;
+	}
+
+	@Override
+	public int getCountLog(Map<String, Object> map) {
+		int count = syslogMapper.countByExample(map);
+		return count;
+	}
+
+	@Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+	@Override
+	public int insert(TSyslog log,String token, String ip) {
+		log.setId(UUIDUtil.getUUID());
+		log.setLogTime(new Date());
+		log.setUserId(LoginUserCache.get(token).getId()==null?"系统导入":LoginUserCache.get(token).getId());
+		log.setAddress(ip==null?"localhost":ip);
+		return syslogMapper.insert(log);
+	}
+
+	@Override
+	public List<Map<String, Object>> selectLogLevel() {
+		List<Map<String, Object>> resultList = new ArrayList<Map<String, Object>>();
+		for (LogLevel logLevel : LogLevel.values()) {
+			Map<String, Object> hashMap = new HashMap<String,Object>();
+			hashMap.put("key",logLevel.getIndex());
+			hashMap.put("name",logLevel.getName());
+			resultList.add(hashMap);
+		}
+		return resultList;
+	}
+
+}

@@ -1,0 +1,45 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd">
+	
+	<!-- 定义一个任务类 -->
+	<bean id="importTask" class="com.tiankui.reactService.timeTask.ImportTask">
+	</bean>
+	<!-- 导入任务类描述 -->
+	<bean id="importDetail" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="importTask"></property>
+		<property name="targetMethod" value="importWorkOrder"></property>
+		<property name="concurrent" value="true" />
+	</bean>
+	<!-- 导入任务触发器  -->
+	<bean id="importTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+		<property name="jobDetail" ref="importDetail"></property>
+		<property name="cronExpression" value="0 38 16 * * ? 2018"></property>
+	</bean>
+	
+	<!-- 定时判断回单工单是否自动归档 -->
+	<bean id="archiveDetail" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="importTask"></property>
+		<property name="targetMethod" value="archiveJKWorkOrder"></property>
+		<property name="concurrent" value="true" />
+	</bean>
+	<!-- 自动归档任务触发器  -->
+	<bean id="archiveTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+		<property name="jobDetail" ref="archiveDetail"></property>
+		<property name="cronExpression" value="0 0/10 * * * ? *"></property>
+	</bean>
+	
+	<!-- 总管理容器 -->
+	<bean id="startQuartz" class="org.springframework.scheduling.quartz.SchedulerFactoryBean" >
+		<property name="triggers">
+			<list>
+				<ref bean="importTrigger"/>
+				<ref bean="archiveTrigger"/>
+			</list>
+		</property>
+	</bean>
+</beans>

@@ -1,0 +1,391 @@
+package com.tiankui.reactService.service.impl;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.tiankui.reactService.entity.Dept;
+import com.tiankui.reactService.entity.Role;
+import com.tiankui.reactService.entity.TSyslog;
+import com.tiankui.reactService.entity.User;
+import com.tiankui.reactService.entity.UserRole;
+import com.tiankui.reactService.entity.UserSettings;
+import com.tiankui.reactService.enums.LogLevel;
+import com.tiankui.reactService.enums.LogType;
+import com.tiankui.reactService.mapper.DeptMapper;
+import com.tiankui.reactService.mapper.RoleMapper;
+import com.tiankui.reactService.mapper.TSyslogMapper;
+import com.tiankui.reactService.mapper.UserMapper;
+import com.tiankui.reactService.mapper.UserRoleMapper;
+import com.tiankui.reactService.mapper.UserSettingsMapper;
+import com.tiankui.reactService.service.IUserService;
+import com.tiankui.reactService.util.MD5Util;
+import com.tiankui.reactService.util.ObjectUtil;
+import com.tiankui.reactService.util.UUIDUtil;
+
+@Service
+public class UserService implements IUserService {
+
+	@Autowired
+	private UserMapper userMapper;
+	@Autowired
+	private RoleMapper roleMapper;
+	@Autowired
+	private DeptMapper deptMapper;
+	@Autowired
+	private UserRoleMapper userRoleMapper;
+	@Autowired
+	private UserSettingsMapper userSettingsMapper;
+	@Autowired
+	private TSyslogMapper syslogMapper;
+
+	@Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+	@Override
+	public User userLogin(String uid, String pwd, String ip) {
+		TSyslog syslog = new TSyslog();
+		User user = new User();
+		user.setUid(uid);
+		try {
+			String md5Pwd = MD5Util.md5(pwd, uid);
+			user.setPwd(md5Pwd);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
+		User userLogin = userMapper.getUserByNameAndPassword(user);
+		if (userLogin != null) {
+			if (userLogin.getEnabled() == 0) {
+				syslog.setLogLevel(LogLevel.WARN.getIndex());
+				syslog.setLogContent("用户锁定，账号登录拦截，拦截用户" + userLogin.getUid());
+				syslog.setUserId(userLogin.getId());
+				userLogin.setUid("NotEnabled");
+				syslog.setLogType(LogType.LOGIN_FAIL.getIndex());
+			} else {
+				try {
+					List<UserSettings> userSettings = userSettingsMapper.getUserSettings(userLogin.getId());
+					List<Role> roles = userMapper.getRoleByUserId(userLogin.getId());
+					userLogin.setRoles(roles);
+					userLogin.setSettings(userSettings);
+					String token = MD5Util.md5(uid, UUIDUtil.getUUID());
+					userLogin.setToken(token);
+					userLogin.setTokenTime(new Date().getTime());
+					userMapper.setTokenByUser(userLogin);
+					syslog.setLogLevel(LogLevel.INFO.getIndex());
+					syslog.setLogContent("登陆系统成功,登陆账号" + userLogin.getUid());
+					syslog.setUserId(userLogin.getId());
+					syslog.setLogType(LogType.LOGIN_SUCCESS.getIndex());
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		} else {
+			syslog.setLogLevel(LogLevel.ERROR.getIndex());
+			syslog.setLogContent("用户登陆失败,登陆账号" + user.getUid() + ",账号或密码错误");
+			syslog.setUserId(user.getUid());
+			syslog.setLogType(LogType.LOGIN_FAIL.getIndex());
+		}
+		syslog.setId(UUIDUtil.getUUID());
+		syslog.setAddress(ip);
+		syslog.setLogTime(new Date());
+		syslogMapper.insert(syslog);
+		return userLogin;
+	}
+
+	@Override
+	public User getTokenUser(String token) {
+		User user = userMapper.getTokenUser(token);
+		List<Role> roles = userMapper.getRoleByUserId(user.getId());
+		user.setRoles(roles);
+		user.setTokenTime(new Date().getTime());
+		List<UserSettings> userSettings = userSettingsMapper.getUserSettings(user.getId());
+		user.setSettings(userSettings);
+		return user;
+	}
+
+	@Override
+	public List<User> getAllUser(Map<String, Object> map) {
+		if (ObjectUtil.isNotNull(map.get("name"))) {
+			map.put("name", "%" + map.get("name") + "%");
+		}
+		if (ObjectUtil.isNotNull(map.get("deptId"))){
+			List<String> deptList = new ArrayList<String>();
+			String deptId = map.get("deptId").toString();
+			List<String> deptNoList = getDeptId(deptId, deptList);
+			map.put("deptNoList",deptNoList);
+		}
+		int start = Integer.valueOf(map.get("start").toString());
+		int limit = Integer.valueOf(map.get("limit").toString());
+		map.put("start", start + 1);
+		map.put("limit", limit + start);
+		List<User> userList = userMapper.getList(map);
+		for (User user : userList) {
+			Map<String, Object> hashMap = new HashMap<String, Object>();
+			hashMap.put("userId", user.getId());
+			List<Role> roleList = roleMapper.getListByUserId(hashMap);
+			user.setRoles(roleList);
+		}
+		List<User> removeList = new ArrayList<User>();
+		for (User user : userList) {
+			if(ObjectUtil.isNotNull(user.getToken())){
+				if(user.getToken().equals(map.get("token"))){
+					removeList.add(user);
+				}
+			}
+		}
+		userList.removeAll(removeList);
+		return userList;
+	}
+	
+	@Override
+	public List<User> getExportUser(Map<String, Object> map) {
+		if (ObjectUtil.isNotNull(map.get("name"))) {
+			map.put("name", "%" + map.get("name") + "%");
+		}
+		if (ObjectUtil.isNotNull(map.get("deptId"))){
+			List<String> deptList = new ArrayList<String>();
+			String deptId = map.get("deptId").toString();
+			List<String> deptNoList = getDeptId(deptId, deptList);
+			map.put("deptNoList",deptNoList);
+		}
+		List<User> userList = userMapper.getExportList(map);
+		for (User user : userList) {
+			Map<String, Object> hashMap = new HashMap<String, Object>();
+			hashMap.put("userId", user.getId());
+			List<Role> roleList = roleMapper.getListByUserId(hashMap);
+			user.setRoles(roleList);
+		}
+		List<User> removeList = new ArrayList<User>();
+		for (User user : userList) {
+			if(ObjectUtil.isNotNull(user.getToken())){
+				if(user.getToken().equals(map.get("token"))){
+					removeList.add(user);
+				}
+			}
+		}
+		userList.removeAll(removeList);
+		return userList;
+	}
+
+	@Override
+	public User getUserById(String id) {
+		User user = userMapper.getUserById(id);
+		Map<String, Object> hashMap = new HashMap<String, Object>();
+		hashMap.put("userId", user.getId());
+		List<Role> roleList = roleMapper.getListByUserId(hashMap);
+		user.setRoles(roleList);
+		return user;
+	}
+
+	@Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+	@Override
+	public int modifyUser(String id, Map<String, Object> map) {
+		if (ObjectUtil.isNull(map.get("email"))) {
+			map.put("email", "");
+		}
+		map.put("updateTime", new Date().getTime());
+		int result = userMapper.updateUser(map);
+		if (ObjectUtil.isNotNull(map.get("roleId"))) {
+			userRoleMapper.deleteUserRole(id);
+			String[] roles = map.get("roleId").toString().split(",");
+			for (String roleId : roles) {
+				String urid = UUIDUtil.getUUID();
+				UserRole userRole = new UserRole(urid, id, roleId);
+				userRoleMapper.insertUserRole(userRole);
+			}
+		}
+		return result;
+	}
+
+	@Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+	@Override
+	public int enabledUser(String id) {
+		User user = userMapper.getUserById(id);
+		if (user.getEnabled() == 0) {
+			user.setEnabled(1);
+		} else if (user.getEnabled() == 1) {
+			user.setEnabled(0);
+		}
+		int result = userMapper.updateUserEnabled(user);
+		return result;
+	}
+
+	@Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+	@Override
+	public int addUser(Map<String, Object> map) {
+		User user = new User();
+		String id = UUIDUtil.getUUID();
+		user.setId(id);
+		user.setDeptId(map.get("deptId").toString());
+		user.setEmail(map.get("email").toString());
+		user.setName(map.get("name").toString());
+		user.setPhone(map.get("phone").toString());
+		user.setUid(map.get("uid").toString());
+		try {
+			String md5 = MD5Util.md5("e10adc3949ba59abbe56e057f20f883e", user.getUid());
+			user.setPwd(md5);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		user.setCreateTime(new Date().getTime());
+		user.setEnabled(0);
+		user.setDeleted(0);
+		int result = userMapper.insertUser(user);
+		if (ObjectUtil.isNotNull(map.get("roleId"))) {
+			String[] roles = map.get("roleId").toString().split(",");
+			for (String roleId : roles) {
+				String urid = UUIDUtil.getUUID();
+				UserRole userRole = new UserRole(urid, id, roleId);
+				userRoleMapper.insertUserRole(userRole);
+			}
+		}
+		if (result == 1) {
+			UserSettings userSettings = new UserSettings();
+			userSettings.setId(UUIDUtil.getUUID());
+			userSettings.setUserId(id);
+			userSettings.setName("ui-layout");
+			userSettings.setValue("layout-lc");
+			userSettingsMapper.addSetting(userSettings);
+		}
+		return result;
+	}
+
+	@Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+	@Override
+	public int delUser(String id) {
+		int result = userMapper.delUser(id);
+		userRoleMapper.deleteUserRole(id);
+		return result;
+	}
+
+	@Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+	@Override
+	public int updateUserSetting(String id, Map<String, Object> map) {
+		map.put("userId", id);
+		int result = userSettingsMapper.updateSetting(map);
+		return result;
+	}
+
+	@Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+	@Override
+	public int resetPassword(String id) {
+		User user = userMapper.getUserById(id);
+		String password = null;
+		try {
+			password = MD5Util.md5("c7122a1349c22cb3c009da3613d242ab", user.getUid());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		Map<String, Object> hashMap = new HashMap<String, Object>();
+		hashMap.put("id", id);
+		hashMap.put("password", password);
+		hashMap.put("pwdUpdateTime", new Date().getTime());
+		int result = userMapper.resetPassword(hashMap);
+		return result;
+	}
+
+	@Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+	@Override
+	public int clearToken(String token) {
+		int result = userMapper.clearToken(token);
+		return result;
+	}
+
+	@Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+	@Override
+	public int changePassword(Map<String, Object> map) {
+		String uid = map.get("uid").toString();
+		String oldPwd = map.get("oldPwd").toString();
+		String newPwd = map.get("newPwd").toString();
+		try {
+			oldPwd = MD5Util.md5(oldPwd, uid);
+			User user = new User(uid,oldPwd);
+			User old = userMapper.getUserByNameAndPassword(user);
+			if (old==null) {
+				return -1;
+			}
+			newPwd = MD5Util.md5(newPwd, uid);
+			Map<String,Object> hashMap = new HashMap<String, Object>();
+			hashMap.put("uid", uid);
+			hashMap.put("newPwd", newPwd);
+			hashMap.put("pwdUpdateTime", new Date().getTime());
+			userMapper.updateUserPassword(hashMap);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return 1;
+	}
+
+	@Override
+	public int getCountList(Map<String, Object> map) {
+		if (ObjectUtil.isNotNull(map.get("name"))) {
+			map.put("name", "%" + map.get("name") + "%");
+		}
+		if (ObjectUtil.isNotNull(map.get("deptId"))){
+			List<String> deptList = new ArrayList<String>();
+			String deptId = map.get("deptId").toString();
+			List<String> deptNoList = getDeptId(deptId, deptList);
+			map.put("deptNoList",deptNoList);
+		}
+		return userMapper.getCount(map);
+	}
+
+	@Override
+	public List<User> queryUserByDeptId(String id) {
+		List<String> deptNoList = new ArrayList<String>();
+		//查询是否有子部门
+		getDeptId(id, deptNoList);
+		List<User> userList= userMapper.getUserByDepts(deptNoList);
+		return userList;
+	}
+
+	@Override
+	public List<User> queryOptStaffss() {
+
+		return userMapper.getOptStaffss();
+	}
+
+	/**
+	 * 查询所有部门
+	 * @param id
+	 * @return
+	 */
+	private List<String> getDeptId(String id, List<String> strings){
+		//查询是否有子部门
+		List<Dept> deptList = deptMapper.getListByParentId(id);
+		if(deptList.size()>0){
+			List<String> deptIds = new ArrayList<String>();
+			for (Dept dept : deptList) {
+				strings.add(dept.getId());
+				deptIds = getDeptId(dept.getId(), strings);
+			}
+		}else{
+			strings.add(id);
+		}
+		return strings;
+	}
+
+	@Override
+	public List<User> queryHandlers(String name) {
+		if(name.equals("六安市")){
+			name="市区";
+		}
+	   name = "%"+name+"代维%";
+       List<Dept> depts  = deptMapper.getListByArea(name);
+       List<String> strings = new ArrayList<String>();
+       if(depts.size()>0){
+			for (Dept dept : depts) {
+				strings.add(dept.getId());
+			}
+		}
+       List<User> users = userMapper.getUserByDept(strings);
+		return users;
+	}
+
+}

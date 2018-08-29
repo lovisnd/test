@@ -1,0 +1,19 @@
+package com.tiankui.reactService.mapper;
+
+import java.util.List;
+import java.util.Map;
+
+import com.tiankui.reactService.entity.Role;
+
+public interface RoleMapper {
+
+	public List<Role> getListByExample(Map<String, Object> map);
+
+	public List<Role> getListByUserId(Map<String, Object> hashMap);
+
+	public Role selectExampleById(String id);
+
+	public int updateRole(Map<String, Object> map);
+
+	public int addRole(Map<String, Object> map); 
+}

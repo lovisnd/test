@@ -1,0 +1,538 @@
+package com.tiankui.reactService.service.impl;
+
+import com.tiankui.reactService.entity.Dict;
+import com.tiankui.reactService.entity.DictGroup;
+import com.tiankui.reactService.entity.User;
+import com.tiankui.reactService.entity.WorkOrder;
+import com.tiankui.reactService.mapper.DictGroupMapper;
+import com.tiankui.reactService.mapper.UserMapper;
+import com.tiankui.reactService.mapper.WorkOrderMapper;
+import com.tiankui.reactService.service.IWorkOrderService;
+import com.tiankui.reactService.util.ObjectUtil;
+import com.tiankui.reactService.util.UUIDUtil;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * @author zhouao
+ * @ClassName: WorkOrderService
+ * @Description: TODO 工单处理逻辑处理实现层
+ * @date 2018年7月30日
+ */
+@Service
+public class WorkOrderService implements IWorkOrderService {
+
+    private static Logger logger = Logger.getLogger(WorkOrderService.class);
+
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+    @Autowired
+	private DictGroupMapper dictGroupMapper;
+    
+    @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
+    private WorkOrderMapper workOrderMapper;
+
+    @Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+    @Override
+    public int upload(List<List<Object>> listob, String token, String filename) {
+        int result = 1;
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        User user = userMapper.getTokenUser(token);
+        List<WorkOrder> allList = new ArrayList<WorkOrder>();
+        for (int i = 0; i < listob.size(); i++) {
+            List<Object> lo = listob.get(i);
+            WorkOrder wo = new WorkOrder();
+            wo.setId(UUIDUtil.getUUID());
+            wo.setCreater(user.getName());
+            wo.setCreateDate(new Date().getTime());
+            wo.setOrderNo(String.valueOf(lo.get(33)));
+            wo.setOrderType(2);
+            wo.setComplaintPhoneno(String.valueOf(lo.get(19)));
+            wo.setInternetAccount(String.valueOf(lo.get(4)));
+            wo.setGuestName(String.valueOf(lo.get(5)));
+            wo.setGuestAddress(String.valueOf(lo.get(6)));
+            wo.setCity(String.valueOf(lo.get(0)));
+            wo.setArea(String.valueOf(lo.get(1)));
+            wo.setComplaintContent(String.valueOf(lo.get(10)));
+            wo.setTakeOrderDateTt(0l);
+            wo.setIsSuccess(Double.valueOf(lo.get(46).toString()) > 24.00 ? 2 : 1);
+            try {
+                wo.setOrderCreateDate("".equals(String.valueOf(lo.get(11))) ? 0 : sdf.parse(String.valueOf(lo.get(11))).getTime());
+                wo.setLastReturnOrderDate("".equals(String.valueOf(lo.get(12))) ? 0 : sdf.parse(String.valueOf(lo.get(12))).getTime());
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+            wo.setOrderHandler(String.valueOf(lo.get(42)));
+            wo.setHandlerChangeArea(String.valueOf(lo.get(36)));
+            wo.setFaultType(getFaultType(String.valueOf(lo.get(43))));
+            wo.setHandleMin((int) (Double.valueOf(lo.get(45).toString()) * 60));
+            wo.setIsTimeout(isTimeOut(String.valueOf(lo.get(34))));
+            wo.setIntervenePerson("");
+            wo.setCallOutWay(2);
+            wo.setOrderStatus(getOrderStatus(String.valueOf(lo.get(31))));
+            wo.setIsSatisfaction(getSatisfaction(String.valueOf(lo.get(20))+String.valueOf(lo.get(21))));
+            allList.add(wo);
+        }
+        List<WorkOrder> errorList = checkData(filename, allList);
+        List<WorkOrder> repeatList = repeatData(filename, allList);
+        //判断是否有错误数据，若有则停止导入
+        if(errorList.size() > 0){
+            result = 0;
+        }else{
+            if (repeatList.size() > 0) {
+                int batchNum = updateBatch(repeatList);
+                logger.error("总共更新" + repeatList.size() + "条，插入了" + batchNum + "批");
+                allList.removeAll(repeatList);
+            }
+            if (allList.size() <= 0) {
+                result = -1;
+            }
+            int count = allList.size();
+            logger.error("开始导入");
+            long currentTime = System.currentTimeMillis();
+            int batchNum = insertBatch(allList);
+            long endTime = System.currentTimeMillis();
+            logger.error("总共插入" + count + "条，插入了" + batchNum + "批。用时【"+ (endTime - currentTime)  +"ms】");
+        }
+        return result;
+    }
+
+    /**
+     * @Title: repeatData
+     * @Description: TODO 获取工单号重复的数据
+     * @param @param filename
+     * @param @param allList
+     * @param @return    参数
+     * @return List<WorkOrder>    返回类型
+     * @throws
+     */
+    private List<WorkOrder> repeatData(String filename, List<WorkOrder> allList) {
+    	ArrayList<WorkOrder> repeatList = new ArrayList<WorkOrder>();
+    	for (WorkOrder workOrder : allList) {
+    		WorkOrder order = workOrderMapper.getOrderByOrderNo(workOrder.getOrderNo());
+    		if (order != null) {
+    			repeatList.add(workOrder);
+			}
+		}
+		return repeatList;
+	}
+
+	@Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+    @Override
+    public void ttWorkOrderInsert(String fileSrc, List<List<Object>> listob) {
+        List<WorkOrder> allList = new ArrayList<WorkOrder>();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        for (int i = 0; i < listob.size(); i++) {
+            List<Object> lo = listob.get(i);
+            WorkOrder wo = new WorkOrder();
+            wo.setId(UUIDUtil.getUUID());
+            wo.setCreater("");
+            wo.setCreateDate(new Date().getTime());
+            wo.setCity(String.valueOf(lo.get(0)));
+            wo.setArea(String.valueOf(lo.get(1)));
+            wo.setIsTimeout(isTimeOut(String.valueOf(lo.get(2))));
+            wo.setIsSuccess("超时".equals(String.valueOf(lo.get(2))) ? 2 : 1);
+            wo.setOrderNo(String.valueOf(lo.get(3)));
+            wo.setInternetAccount(String.valueOf(lo.get(4)));
+            wo.setOrderType(1);
+            try {
+                wo.setOrderCreateDate("".equals(String.valueOf(lo.get(6))) ? 0 : sdf.parse(String.valueOf(lo.get(6))).getTime());
+                wo.setTakeOrderDateTt("".equals(String.valueOf(lo.get(14))) ? 0 : sdf.parse(String.valueOf(lo.get(14))).getTime());
+                if ("".equals(String.valueOf(lo.get(16)))) {
+                    wo.setLastReturnOrderDate(0l);
+                    wo.setHandleMin(0);
+                } else {
+                    wo.setLastReturnOrderDate(sdf.parse(String.valueOf(lo.get(16))).getTime());
+                    long ss = sdf.parse(String.valueOf(lo.get(16))).getTime() - sdf.parse(String.valueOf(lo.get(14))).getTime();
+                    wo.setHandleMin((int) ((ss % 3600000) / 60000));
+                }
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+            wo.setGuestName(ObjectUtil.isNotNull(String.valueOf(lo.get(7))) ? String.valueOf(lo.get(7)) : "");
+            wo.setGuestAddress(String.valueOf(lo.get(8)));
+            wo.setComplaintPhoneno(String.valueOf(lo.get(9)));
+            wo.setComplaintContent(String.valueOf(lo.get(10)));
+            wo.setOrderHandler(String.valueOf(lo.get(23)));
+            wo.setFaultType(getFaultType(String.valueOf(lo.get(11))));
+            wo.setIntervenePerson(ObjectUtil.isNotNull(String.valueOf(lo.get(16))) ? String.valueOf(lo.get(16)) : "");
+            wo.setCallOutWay(getCallOutWay(String.valueOf(lo.get(19))));
+            wo.setIsSatisfaction(getSatisfaction(String.valueOf(lo.get(20))));
+            wo.setHandlerChangeArea("");
+            wo.setOrderStatus(getOrderStatus(String.valueOf(lo.get(22))));
+            allList.add(wo);
+        }
+        List<WorkOrder> errorList = checkData(fileSrc, allList);
+        List<WorkOrder> repeatList = repeatData(fileSrc, allList);
+        if (errorList.size() > 0) {
+        	return;
+        }
+        if (repeatList.size() > 0) {
+			allList.removeAll(repeatList);
+		}
+        workOrderMapper.updateBatch(repeatList);
+        logger.error("已发现"+repeatList.size()+"条订单号重复的数据！数据已更新");
+        workOrderMapper.insertByBatch(allList);
+    }
+
+    @Override
+    public List<WorkOrder> getListByMap(Map<String, Object> map) {
+        if (ObjectUtil.isNotNull(map.get("orderNo"))) {
+            map.put("orderNo", "%" + map.get("orderNo") + "%");
+        }
+        if (ObjectUtil.isNotNull(map.get("guestName"))) {
+            map.put("guestName", "%" + map.get("guestName") + "%");
+        }
+        if (ObjectUtil.isNotNull(map.get("complaintPhoneno"))) {
+            map.put("complaintPhoneno", "%" + map.get("complaintPhoneno") + "%");
+        }
+        if (ObjectUtil.isNotNull(map.get("guestAddress"))) {
+            map.put("guestAddress", "%" + map.get("guestAddress") + "%");
+        }
+        if (ObjectUtil.isNotNull(map.get("start"))){
+            int start = Integer.valueOf(map.get("start").toString());
+            int limit = Integer.valueOf(map.get("limit").toString());
+            map.put("start", start + 1);
+            map.put("limit", limit + start);
+        }
+        List<WorkOrder> list = workOrderMapper.getListByMap(map);
+        return list;
+    }
+
+    /**
+     * 数据校验的方法
+     *
+     * @param allList
+     */
+    private List<WorkOrder> checkData(String fileName, List<WorkOrder> allList) {
+        List<WorkOrder> errorList = new ArrayList<WorkOrder>();
+        for (int i = 0; i < allList.size(); i++) {
+            int indexOf = i + 2;
+            if (ObjectUtil.isNull(allList.get(i).getFaultType())) {
+                errorList.add(allList.get(i));
+                logger.error(fileName + "，第" + indexOf + "行数据导入失败，故障类型为空！");
+            }
+            if (ObjectUtil.isNull(allList.get(i).getArea())) {
+                errorList.add(allList.get(i));
+                logger.error(fileName + "，第" + indexOf + "行数据导入失败，故障区域为空！");
+            }
+            if (ObjectUtil.isNull(allList.get(i).getHandleMin())) {
+                errorList.add(allList.get(i));
+                logger.error(fileName + "，第" + indexOf + "行数据导入失败，故障未处理！");
+            }
+            if (ObjectUtil.isNull(allList.get(i).getIsSuccess())) {
+                errorList.add(allList.get(i));
+                logger.error(fileName + "，第" + indexOf + "行数据导入失败，故障处理成功为空！");
+            }
+            if (ObjectUtil.isNull(allList.get(i).getComplaintPhoneno())) {
+                errorList.add(allList.get(i));
+                logger.error(fileName + "，第" + indexOf + "行数据导入失败，投诉号码为空！");
+            }
+            if (ObjectUtil.isNull(allList.get(i).getOrderHandler())) {
+                errorList.add(allList.get(i));
+                logger.error(fileName + "，第" + indexOf + "行数据导入失败，装维人员为空！");
+            }
+        }
+        return errorList;
+    }
+
+    @Override
+    public List<Map<String, Object>> getList(Map<String, Object> map) {
+        if (ObjectUtil.isNotNull(map.get("orderNo"))) {
+            map.put("orderNo", "%" + map.get("orderNo") + "%");
+        }
+        if (ObjectUtil.isNotNull(map.get("guestName"))) {
+            map.put("guestName", "%" + map.get("guestName") + "%");
+        }
+        if (ObjectUtil.isNotNull(map.get("complaintPhoneno"))) {
+        	map.put("complaintPhoneno", "%" + map.get("complaintPhoneno") + "%");
+        }
+        if (ObjectUtil.isNotNull(map.get("guestAddress"))) {
+            map.put("guestAddress", "%" + map.get("guestAddress") + "%");
+        }
+        List<WorkOrder> list = workOrderMapper.getList(map);
+        List<Map<String, Object>> mapList = new ArrayList<Map<String, Object>>();
+        for (WorkOrder user : list) {
+            Map<String, Object> toMap = convertField(user);
+            mapList.add(toMap);
+        }
+        return mapList;
+    }
+
+    @Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+    @Override
+    public int delOrderId(String id) {
+        return workOrderMapper.detele(id);
+    }
+
+    @Override
+    public int getOrderNo(String orderNo) {
+        int result = 0;
+        WorkOrder order = workOrderMapper.getOrderByOrderNo(orderNo);
+        if(ObjectUtil.isNotNull(order)){
+            result = 1;
+        }
+        return result;
+    }
+
+    @Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+    @Override
+    public int addWorkOrder(Map<String, Object> map) {
+        User user = userMapper.getTokenUser(map.get("token").toString());
+        WorkOrder workOrder = null;
+        try {
+            workOrder = (WorkOrder)ObjectUtil.mapToObject(map,WorkOrder.class);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        workOrder.setId(UUIDUtil.getUUID());
+        if (Integer.valueOf(workOrder.getOrderType().toString())==1) {
+            Date start = null;
+            Date end = null;
+            try {
+                start = sdf.parse(workOrder.getLastReturnOrderDate().toString());
+                end = sdf.parse(workOrder.getTakeOrderDateTt().toString());
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+            long ss = end.getTime() - start.getTime();
+            workOrder.setHandleMin((int) ((ss % 3600000) / 60000));
+        }
+        return workOrderMapper.save(workOrder);
+    }
+
+    @Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+    @Override
+    public int updateWorkOrder(String id, Map<String, Object> map) {
+
+        return 0;
+    }
+
+    /**
+     * 更改字段含义使用户看得懂
+     * @param user
+     * @return
+     */
+    private Map<String, Object> convertField(WorkOrder user) {
+        Map<String, Object> toMap = ObjectUtil.objectToMap(user);
+        toMap.put("orderType", Integer.valueOf(toMap.get("orderType").toString()) == 1 ? "铁通工单" : "10086工单");
+        if (ObjectUtil.isNotNull(toMap.get("orderStatus"))) {
+            if (Integer.valueOf(toMap.get("orderStatus").toString()) == 1) {
+                toMap.put("orderStatus", "已归档");
+            }else if (Integer.valueOf(toMap.get("orderStatus").toString()) == 2) {
+                toMap.put("orderStatus", "未归档");
+            }
+        }
+        if (ObjectUtil.isNotNull(toMap.get("callOutWay"))) {
+            if (Integer.valueOf(toMap.get("callOutWay").toString()) == 1) {
+                toMap.put("callOutWay", "未外呼");
+            }else if (Integer.valueOf(toMap.get("callOutWay").toString()) == 2) {
+                toMap.put("callOutWay", "自动外呼");
+            }else if (Integer.valueOf(toMap.get("callOutWay").toString()) == 3) {
+                toMap.put("callOutWay", "esales外呼");
+            }else if (Integer.valueOf(toMap.get("callOutWay").toString()) == 4) {
+                toMap.put("callOutWay", "客服电话回访");
+            }
+        }
+        if (ObjectUtil.isNotNull(toMap.get("isSatisfaction"))) {
+            if (Integer.valueOf(toMap.get("isSatisfaction").toString()) == 1) {
+                toMap.put("isSatisfaction", "很满意（问题已经解决）");
+            }else if (Integer.valueOf(toMap.get("isSatisfaction").toString()) == 2) {
+                toMap.put("isSatisfaction", "不满意（问题已经解决）");
+            }else if (Integer.valueOf(toMap.get("isSatisfaction").toString()) == 3) {
+                toMap.put("isSatisfaction", "不满意（问题未解决）");
+            }
+        }
+        if (ObjectUtil.isNotNull(toMap.get("takeOrderDateTt"))){
+            if (Long.valueOf(toMap.get("takeOrderDateTt").toString()) == 0){
+                toMap.put("takeOrderDateTt", "");
+            }else{
+                toMap.put("takeOrderDateTt", sdf.format(new Date(Long.valueOf(toMap.get("takeOrderDateTt").toString()))));
+            }
+        }
+        return toMap;
+    }
+
+    @Override
+    public int getCountList(Map<String, Object> map) {
+        if (ObjectUtil.isNotNull(map.get("orderNo"))) {
+            map.put("orderNo", "%" + map.get("orderNo") + "%");
+        }
+        if (ObjectUtil.isNotNull(map.get("guestName"))) {
+            map.put("guestName", "%" + map.get("guestName") + "%");
+        }
+        if (ObjectUtil.isNotNull(map.get("guestAddress"))) {
+            map.put("guestAddress", "%" + map.get("guestAddress") + "%");
+        }
+        int count = workOrderMapper.getCountListByMap(map);
+        return count;
+    }
+
+    /**
+     * 工单是否超时
+     * @param timeOut
+     * @return
+     */
+    private Integer isTimeOut(String timeOut) {
+        int result = 0;
+        if ("超时".equals(timeOut)) {
+            result = 1;
+        }
+        return result;
+    }
+
+    /**
+     * 获取工单信息
+     * @param orderStatus
+     * @return
+     */
+    private Integer getOrderStatus(String orderStatus) {
+        int result = 0;
+        if (orderStatus.contains("已归档")) {
+            result = 1;
+        } else if (orderStatus.contains("未归档")) {
+            result = 2;
+        }
+        return result;
+    }
+
+    /**
+     * 获取满意度
+     * @param satisfaction
+     * @return
+     */
+    private Integer getSatisfaction(String satisfaction) {
+        //用户满意情况：1：满意（问题已经解决），2：不满意（问题已经解决），3：不满意（问题未解决）
+        int result = 0;
+        if (satisfaction.contains("问题已经解决")||satisfaction.contains("故障已解决")) {
+            if (satisfaction.contains("不满意"))
+                result = 2;
+            else result = 1;
+        } else {
+            result = 3;
+        }
+        return result;
+    }
+
+    /**
+     * 获取外呼方式
+     * @param way
+     * @return
+     */
+    private Integer getCallOutWay(String way) {
+        //外呼方式；1:未外呼，2：自动外呼，3：esales外呼，4：客服电话回访
+        int result = 0;
+        if ("未外呼".equals(way))
+            result = 1;
+        else if ("自动外呼".equals(way))
+            result = 2;
+        else if ("esales外呼".equals(way))
+            result = 3;
+        else if ("客服电话回访".equals(way))
+            result = 4;
+        return result;
+    }
+
+    /**
+     * 批量更新
+     * @param repeatList
+     * @return
+     */
+    private int updateBatch(List<WorkOrder> repeatList) {
+        // 每批次更新数量
+        int batchCount = 1000;
+        // 批次
+        int batchNum = 1;
+        for (;;) {
+            List<WorkOrder> workOrderList = new ArrayList<WorkOrder>();
+            if (batchCount >= repeatList.size()) {
+                workOrderMapper.updateBatch(repeatList);
+                // 一次可全部更新
+                break;
+            } else {
+                // 需要多次更新
+                workOrderList = repeatList.subList(0, batchCount);
+                workOrderMapper.updateBatch(workOrderList);
+            }
+            repeatList.removeAll(workOrderList);
+            batchNum++;
+        }
+        return batchNum;
+    }
+
+    /**
+     * 批量插入
+     * @param insertList
+     * @return
+     */
+    private int insertBatch(List<WorkOrder> insertList) {
+        // 每批次插入数量
+        int batchCount = 1000;
+        // 批次
+        int batchNum = 1;
+        for (;;) {
+            List<WorkOrder> workOrderList = new ArrayList<WorkOrder>();
+            if (batchCount >= insertList.size()) {
+                workOrderMapper.insertByBatch(insertList);
+                // 一次可全部插入
+                break;
+            } else {
+                // 需要多次插入
+                workOrderList = insertList.subList(0, batchCount);
+                workOrderMapper.insertByBatch(workOrderList);
+            }
+            insertList.removeAll(workOrderList);
+            batchNum++;
+        }
+        return batchNum;
+    }
+
+
+    /**
+     * 
+     * @Title: getFaultType
+     * @Description: TODO 获取故障类型
+     * @param @param fault
+     * @param @return    参数
+     * @return String    返回类型
+     * @throws
+     */
+    private String getFaultType(String fault) {
+    	String result = "其他";
+    	List<Dict> dicts = dictGroupMapper.selectAllDict();
+    	for (Dict dict : dicts) {
+    		if(fault.contains(dict.getName())){
+    			DictGroup dictGroup = dictGroupMapper.getById(dict.getDictGroupId());
+    			result = dictGroup.getGroupName();
+    		}
+		}
+        return result;
+    }
+
+	@Override
+	public Map<String, Object> getWorkOrderById(String id) {
+        WorkOrder order = workOrderMapper.getWorkOrderById(id);
+        Map<String, Object> resultMap = convertField(order);
+        return resultMap;
+    }
+
+    @Override
+    public WorkOrder getOrderById(String id) {
+        return workOrderMapper.getWorkOrderById(id);
+    }
+
+}

@@ -1,0 +1,19 @@
+package com.tiankui.reactService.mapper;
+
+import java.util.List;
+import java.util.Map;
+
+import com.tiankui.reactService.entity.TSyslog;
+
+public interface TSyslogMapper {
+    int countByExample(Map<String, Object> map);
+
+    int insert(TSyslog record);
+
+    List<TSyslog> selectByExample(Map<String, Object> map);
+
+    TSyslog selectByPrimaryKey(String id);
+    
+    List<Integer> selectLogType();
+    
+}

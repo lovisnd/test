@@ -1,0 +1,121 @@
+package com.tiankui.reactService.controller;
+
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.tiankui.reactService.entity.Result;
+import com.tiankui.reactService.entity.ResultArray;
+import com.tiankui.reactService.entity.Role;
+import com.tiankui.reactService.entity.User;
+import com.tiankui.reactService.service.IRoleService;
+import com.tiankui.reactService.util.ObjectUtil;
+
+@Controller
+@RequestMapping("/api/system/role")
+public class RoleController {
+
+	@Autowired
+	private IRoleService roleService;
+
+	@ResponseBody
+	@RequestMapping(value = "/list")
+	public Result<List<Role>> getList(@RequestBody Map<String, Object> map) {
+		List<Role> list = roleService.getListByExample(map);
+		int count = roleService.getCountList(map);
+		Result<List<Role>> result = new Result<List<Role>>();
+		result.setData(list);
+		result.setCount(count);
+		result.setMessage("查询成功");
+		result.setStatus(1);
+		return result;
+	}
+
+	@ResponseBody
+	@RequestMapping(value = "/add")
+	public Result<Integer> addRole(@RequestBody Map<String, Object> map) {
+		Integer resultNum = roleService.addRole(map);
+		Result<Integer> result = new Result<Integer>();
+		result.setData(resultNum);
+		result.setMessage("查询成功");
+		result.setStatus(1);
+		return result;
+	}
+
+	@ResponseBody
+	@RequestMapping(value = "/query")
+	public ResultArray<Role> getRoleById(@RequestParam String id) {
+		Role resultRole = roleService.getRoleById(id);
+		ResultArray<Role> result = new ResultArray<Role>();
+		result.setMessage("查询成功！");
+		if (ObjectUtil.isNotNull(resultRole)) {
+			Role[] users = { resultRole };
+			result.setData(users);
+			result.setStatus(1);
+		} else {
+			result.setData(null);
+			result.setStatus(0);
+		}
+		return result;
+	}
+
+	@ResponseBody
+	@RequestMapping(value = "/edit")
+	public Result<Integer> editRole(@RequestParam String id, @RequestBody Map<String, Object> map) {
+		int resultNum = roleService.modifyRole(id, map);
+		Result<Integer> result = new Result<Integer>();
+		if (resultNum == 1) {
+			result.setData(resultNum);
+			result.setStatus(1);
+			result.setMessage("修改成功！");
+		} else {
+			result.setData(resultNum);
+			result.setStatus(0);
+			result.setMessage("修改失败！");
+		}
+		return result;
+	}
+	
+	@ResponseBody
+    @RequestMapping(value = "/del")
+    public Result<Integer> delRole(@RequestParam String id){
+    	int resultNum = roleService.delRole(id);
+    	Result<Integer> result = new Result<Integer>();
+    	if (resultNum == 1) {
+    		result.setData(resultNum);
+    		result.setStatus(1);
+    		result.setMessage("删除成功！");
+    	}else{
+    		result.setData(resultNum);
+    		result.setStatus(0);
+    		result.setMessage("删除失败！");
+    	}
+    	return result;
+    }
+
+	/**
+	 * 
+	 * @Title: queryUser
+	 * @Description: TODO 查询角色下的所有用户
+	 * @param @param id
+	 * @param @return    参数
+	 * @return Result<List<User>>    返回类型
+	 * @throws
+	 */
+	@ResponseBody
+	@RequestMapping(value = "/queryUser")
+	public Result<List<User>> queryUser(@RequestParam String id) {
+		List<User> list = roleService.queryUserByRoleId(id);
+		Result<List<User>> result = new Result<List<User>>();
+		result.setData(list);
+		result.setStatus(1);
+		result.setMessage("查询成功！");
+		return result;
+	}
+}

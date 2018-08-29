@@ -1,0 +1,314 @@
+package com.tiankui.reactService.service.impl;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.tiankui.reactService.entity.GuestInfo;
+import com.tiankui.reactService.entity.JkWorkOrder;
+import com.tiankui.reactService.entity.User;
+import com.tiankui.reactService.mapper.GuestInfoMapper;
+import com.tiankui.reactService.mapper.JkWorkOrderMapper;
+import com.tiankui.reactService.mapper.UserMapper;
+import com.tiankui.reactService.service.IJkWorkOrderService;
+import com.tiankui.reactService.util.ObjectUtil;
+import com.tiankui.reactService.util.UUIDUtil;
+
+/**
+ * @author zhangmingrui
+ * @ClassName: JkWorkOrderService
+ * @Description: TODO 集客工单处理逻辑处理实现层
+ * @date 2018年8月06日
+ */
+@Service
+public class JkWorkOrderService implements IJkWorkOrderService {
+
+	SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+
+	@Autowired
+	private UserMapper userMapper;
+
+	@Autowired
+	private JkWorkOrderMapper jkworkOrderMapper;
+	@Autowired
+	private GuestInfoMapper guestInfoMapper;
+
+	@Override
+	public List<JkWorkOrder> getListByMap(Map<String, Object> map) {
+		if (ObjectUtil.isNotNull(map.get("jkOrderNo"))) {
+			map.put("jkOrderNo", "%" + map.get("jkOrderNo") + "%");
+		}
+		if (ObjectUtil.isNotNull(map.get("orderState"))) {
+			map.put("orderState", "%" + map.get("orderState") + "%");
+		}
+		if (ObjectUtil.isNotNull(map.get("phoneNo"))) {
+			map.put("phoneNo", "%" + map.get("phoneNo") + "%");
+		}
+		if (ObjectUtil.isNotNull(map.get("cliqueName"))) {
+			map.put("cliqueName", "%" + map.get("cliqueName") + "%");
+		}
+		if (ObjectUtil.isNotNull(map.get("orderHandler"))) {
+			map.put("orderHandler", "%" + map.get("orderHandler") + "%");
+		}
+		if (ObjectUtil.isNotNull(map.get("start"))) {
+			int start = Integer.valueOf(map.get("start").toString());
+			int limit = Integer.valueOf(map.get("limit").toString());
+			map.put("start", start + 1);
+			map.put("limit", limit + start);
+		}
+		System.out.println(map);
+		List<JkWorkOrder> list = jkworkOrderMapper.getListByMap(map);
+		return list;
+	}
+
+	@Override
+	public int getCountList(Map<String, Object> map) {
+		if (ObjectUtil.isNotNull(map.get("jkOrderNo"))) {
+			map.put("jkOrderNo", "%" + map.get("jkOrderNo") + "%");
+		}
+		if (ObjectUtil.isNotNull(map.get("orderState"))) {
+			map.put("orderState", "%" + map.get("orderState") + "%");
+		}
+		if (ObjectUtil.isNotNull(map.get("phoneNo"))) {
+			map.put("phoneNo", "%" + map.get("phoneNo") + "%");
+		}
+		if (ObjectUtil.isNotNull(map.get("cliqueName"))) {
+			map.put("cliqueName", "%" + map.get("cliqueName") + "%");
+		}
+		if (ObjectUtil.isNotNull(map.get("orderHandler"))) {
+			map.put("orderHandler", "%" + map.get("orderHandler") + "%");
+		}
+		int count = jkworkOrderMapper.getCountListByMap(map);
+		return count;
+	}
+
+	@Override
+	public List<GuestInfo> getCliqueNameByName(String cliqueName) {
+		if (ObjectUtil.isNotNull(cliqueName)) {
+			cliqueName = "%" + cliqueName + "%";
+		}
+		List<GuestInfo> list = guestInfoMapper.getCliqueNameByName(cliqueName);
+		return list;
+	}
+
+	@Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+	@Override
+	public int addJkWorkOrder(Map<String, Object> map) {
+		User user = userMapper.getTokenUser(map.get("token").toString());
+		Object object = map.get("createDate");
+		long time = 0L;
+		try {
+			time = sdf.parse(object.toString()).getTime();
+		} catch (ParseException e1) {
+			e1.printStackTrace();
+		}
+		System.out.println(object);
+		JkWorkOrder jkworkOrder = null;
+		map.put("distributePerson", "");
+		map.put("creater", user.getName());
+		map.put("createDate", time);
+		map.put("faultReson", "");
+		map.put("handleMin", 0);
+		map.put("isTimeout", 0);
+		map.put("returnOrderDate", 0L);
+		map.put("takeOrderDate", time);
+		map.put("transpondPerson", "");
+		map.put("transpondTakeOrderDate", 0L);
+		map.put("isSatisfaction", 0);
+		Object success = map.get("isSuccess");
+		Object callOutWay = map.get("callOutWay");
+		Object isTranspond = map.get("isTranspond");
+		Object isSatisfaction = map.get("isSatisfaction");
+		Object orderState = map.get("orderState");
+		if (success != null && success != "") {
+			map.put("isSuccess", Integer.parseInt(success.toString()));
+		}
+		if (callOutWay != null && callOutWay != "") {
+			map.put("callOutWay", Integer.parseInt(callOutWay.toString()));
+		} else {
+			map.put("callOutWay", 1);
+		}
+		if (isTranspond != null && isTranspond != "") {
+			map.put("isTranspond", Integer.parseInt(isTranspond.toString()));
+		}
+		if (isSatisfaction != null && isSatisfaction != "") {
+			map.put("isSatisfaction", Integer.parseInt(isSatisfaction.toString()));
+		} else {
+			map.put("isSatisfaction", 0);
+		}
+		if (orderState != null && orderState != "") {
+			map.put("orderState", Integer.parseInt(orderState.toString()));
+		} else {
+			map.put("orderState", 1);
+		}
+		map.put("city", "六安");
+		try {
+			jkworkOrder = (JkWorkOrder) ObjectUtil.mapToObject(map, JkWorkOrder.class);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		String uuid = UUIDUtil.getUUID();
+		jkworkOrder.setId(uuid);
+
+		return jkworkOrderMapper.save(jkworkOrder);
+	}
+
+	@Override
+	public int getJkOrderNo(String jkOrderNo) {
+		int result = 0;
+		JkWorkOrder jkOrder = jkworkOrderMapper.getOrderByJkOrderNo(jkOrderNo);
+		if (ObjectUtil.isNotNull(jkOrder)) {
+			result = 1;
+		}
+		return result;
+	}
+
+	@Override
+	public Map<String, Object> getJkWorkOrderById(String id) {
+		JkWorkOrder order = jkworkOrderMapper.getJkWorkOrderById(id);
+		Map<String, Object> resultMap = convertField(order);
+		return resultMap;
+	}
+
+	/**
+	 * 更改字段含义使用户看得懂
+	 * 
+	 * @param user
+	 * @return
+	 */
+	private Map<String, Object> convertField(JkWorkOrder user) {
+		Map<String, Object> toMap = ObjectUtil.objectToMap(user);
+		if (ObjectUtil.isNotNull(toMap.get("orderState"))) {
+			if (Integer.valueOf(toMap.get("orderState").toString()) == 1) {
+				toMap.put("orderState", "处理中");
+			} else if (Integer.valueOf(toMap.get("orderState").toString()) == 2) {
+				toMap.put("orderState", "已回单");
+			} else if (Integer.valueOf(toMap.get("orderState").toString()) == 3) {
+				toMap.put("orderState", "已归档");
+			}
+		}
+		if (ObjectUtil.isNotNull(toMap.get("callOutWay"))) {
+			if (Integer.valueOf(toMap.get("callOutWay").toString()) == 1) {
+				toMap.put("callOutWay", "未外呼");
+			} else if (Integer.valueOf(toMap.get("callOutWay").toString()) == 2) {
+				toMap.put("callOutWay", "自动外呼");
+			} else if (Integer.valueOf(toMap.get("callOutWay").toString()) == 3) {
+				toMap.put("callOutWay", "esales外呼");
+			} else if (Integer.valueOf(toMap.get("callOutWay").toString()) == 4) {
+				toMap.put("callOutWay", "客服电话回访");
+			}
+		}
+		if (ObjectUtil.isNotNull(toMap.get("isSatisfaction"))) {
+			if (Integer.valueOf(toMap.get("isSatisfaction").toString()) == 1) {
+				toMap.put("isSatisfaction", "很满意（问题已经解决）");
+			} else if (Integer.valueOf(toMap.get("isSatisfaction").toString()) == 2) {
+				toMap.put("isSatisfaction", "不满意（问题已经解决）");
+			} else if (Integer.valueOf(toMap.get("isSatisfaction").toString()) == 3) {
+				toMap.put("isSatisfaction", "不满意（问题未解决）");
+			} else if (Integer.valueOf(toMap.get("isSatisfaction").toString()) == 0) {
+				toMap.put("isSatisfaction", "尚未回访");
+			}
+		}
+		if (ObjectUtil.isNotNull(toMap.get("takeOrderDate"))) {
+			if (Long.valueOf(toMap.get("takeOrderDate").toString()) == 0) {
+				toMap.put("takeOrderDate", "");
+			} else {
+				toMap.put("takeOrderDate", sdf.format(new Date(Long.valueOf(toMap.get("takeOrderDate").toString()))));
+			}
+		}
+		if (ObjectUtil.isNotNull(toMap.get("isSuccess"))) {
+			if (Long.valueOf(toMap.get("isSuccess").toString()) == 0) {
+				toMap.put("isSuccess", "尚未解决");
+			} else {
+				toMap.put("isSuccess", "已经解决");
+			}
+		}
+		return toMap;
+	}
+
+	@Override
+	public JkWorkOrder getOrderById(String id) {
+		JkWorkOrder jkWorkOrder = jkworkOrderMapper.getJkWorkOrderById(id);
+		return jkWorkOrder;
+	}
+
+	@Override
+	public int updateJkWorkOrder(String id, Map<String, Object> map) {
+		Object callOutWay = map.get("callOutWay");
+		Object isSatisfaction = map.get("isSatisfaction");
+		Object orderState = map.get("orderState");
+		if (callOutWay != null && callOutWay != "") {
+			map.put("callOutWay", Integer.parseInt(callOutWay.toString()));
+		}
+		if (isSatisfaction != null && isSatisfaction != "") {
+			map.put("isSatisfaction", Integer.parseInt(isSatisfaction.toString()));
+		}
+		if (orderState != null && orderState != "") {
+			map.put("orderState", Integer.parseInt(orderState.toString()));
+		}
+		JkWorkOrder jkworkOrder = null;
+		try {
+			jkworkOrder = (JkWorkOrder) ObjectUtil.mapToObject(map, JkWorkOrder.class);
+			jkworkOrder.setId(id);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return jkworkOrderMapper.updateJkWorkOrderInfo(jkworkOrder);
+	}
+
+	@Override
+	public List<Map<String, Object>> getList(Map<String, Object> map) {
+		if (map.get("jkOrderNo").equals("undefined")) {
+			map.put("jkOrderNo", "");
+		} else {
+			map.put("jkOrderNo", "%" + map.get("jkOrderNo") + "%");
+		}
+		if (map.get("orderState").equals("undefined")) {
+			map.put("orderState", "");
+		} else {
+			map.put("orderState", "");
+		}
+		if (map.get("phoneNo").equals("undefined")) {
+			map.put("phoneNo", "");
+		} else {
+			map.put("phoneNo", "%" + map.get("phoneNo") + "%");
+		}
+		if (map.get("cliqueName").equals("undefined")) {
+			map.put("cliqueName", "");
+		} else {
+			map.put("cliqueName", "%" + map.get("cliqueName") + "%");
+		}
+		if (map.get("orderHandler").equals("undefined")) {
+			map.put("orderHandler", "");
+		} else {
+			map.put("orderHandler", "%" + map.get("orderHandler") + "%");
+		}
+		List<JkWorkOrder> list = jkworkOrderMapper.getList(map);
+		List<Map<String, Object>> mapList = new ArrayList<Map<String, Object>>();
+		for (JkWorkOrder user : list) {
+			Map<String, Object> toMap = convertField(user);
+			mapList.add(toMap);
+		}
+		return mapList;
+	}
+
+	@Override
+	public List<JkWorkOrder> getNotArchiveOrder() {
+		return jkworkOrderMapper.getNotArchiveOrder();
+	}
+
+	@Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+	@Override
+	public void archiveOrder(List<JkWorkOrder> list) {
+		jkworkOrderMapper.archiveOrder(list);
+	}
+}

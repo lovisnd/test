@@ -1,0 +1,114 @@
+package com.tiankui.reactService.service.impl;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.tiankui.reactService.entity.Role;
+import com.tiankui.reactService.entity.RoleRight;
+import com.tiankui.reactService.entity.User;
+import com.tiankui.reactService.mapper.RightMapper;
+import com.tiankui.reactService.mapper.RoleMapper;
+import com.tiankui.reactService.mapper.UserMapper;
+import com.tiankui.reactService.service.IRoleService;
+import com.tiankui.reactService.util.ObjectUtil;
+import com.tiankui.reactService.util.UUIDUtil;
+
+@Service
+public class RoleService implements IRoleService {
+
+	@Autowired
+	private RoleMapper roleMapper;
+	@Autowired
+	private UserMapper userMapper;
+	@Autowired
+	private RightMapper rightMapper;
+
+	@Override
+	public List<Role> getListByExample(Map<String, Object> map) {
+		if (ObjectUtil.isNotNull(map.get("name"))) {
+			map.put("name", "%" + map.get("name") + "%");
+		}
+		int start = Integer.valueOf(map.get("start").toString());
+		int limit = Integer.valueOf(map.get("limit").toString());
+		map.put("start", start + 1);
+		map.put("limit", limit + start);
+		List<Role> list = roleMapper.getListByExample(map);
+		return list;
+	}
+
+	@Override
+	public List<Role> getExportList(Map<String, Object> map) {
+		if (ObjectUtil.isNotNull(map.get("name"))) {
+			map.put("name", "%" + map.get("name") + "%");
+		}
+		List<Role> list = roleMapper.getExportList(map);
+		return list;
+	}
+
+	@Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+	@Override
+	public int addRole(Map<String, Object> map) {
+		String uuid = UUIDUtil.getUUID();
+		map.put("id", uuid);
+		map.put("createTime", new Date().getTime());
+		map.put("updateTime", new Date().getTime());
+		int result = roleMapper.addRole(map);
+		// 添加默认角色权限
+		ArrayList<String> defaultList = new ArrayList<String>();
+		defaultList.add("98f1f65eb32c11e699cdc860002a75d2");
+		defaultList.add("195f784cc76749bda4f27d86a1cf1d96");
+		defaultList.add("fc8228ba73914e4e813808ad52c00856");
+		for (String right : defaultList) {
+			RoleRight roleRight = new RoleRight();
+			roleRight.setId(UUIDUtil.getUUID());
+			roleRight.setRoleId(uuid);
+			roleRight.setMenuId(right);
+			rightMapper.saveRight(roleRight);
+		}
+		return result;
+	}
+
+	@Override
+	public Role getRoleById(String id) {
+		Role role = roleMapper.selectExampleById(id);
+		return role;
+	}
+
+	@Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+	@Override
+	public int modifyRole(String id, Map<String, Object> map) {
+		map.put("id", id);
+		if (ObjectUtil.isNull(map.get("description"))) {
+			map.put("description", "");
+		}
+		map.put("updateTime", new Date().getTime());
+		int result = roleMapper.updateRole(map);
+		return result;
+	}
+
+	@Override
+	public List<User> queryUserByRoleId(String id) {
+		List<User> list = userMapper.queryUserByRid(id);
+		return list;
+	}
+
+	@Override
+	public int getCountList(Map<String, Object> map) {
+		return roleMapper.getCount(map);
+	}
+
+	@Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+	@Override
+	public int delRole(String id) {
+		return roleMapper.deleteRole(id);
+	}
+
+}

@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.tiankui.reactService.mapper.WorkOrderMapper">
+    <resultMap id="BaseResultMap" type="com.tiankui.reactService.entity.WorkOrder">
+        <id column="ID" property="id" jdbcType="VARCHAR"/>
+        <result column="ORDER_NO" property="orderNo" jdbcType="VARCHAR"/>
+        <result column="ORDER_TYPE" property="orderType" jdbcType="INTEGER"/>
+        <result column="COMPLAINT_PHONENO" property="complaintPhoneno"
+                jdbcType="VARCHAR"/>
+        <result column="INTERNET_ACCOUNT" property="internetAccount"
+                jdbcType="VARCHAR"/>
+        <result column="GUEST_NAME" property="guestName" jdbcType="VARCHAR"/>
+        <result column="GUEST_ADDRESS" property="guestAddress"
+                jdbcType="VARCHAR"/>
+        <result column="CITY" property="city" jdbcType="VARCHAR"/>
+        <result column="AREA" property="area" jdbcType="VARCHAR"/>
+        <result column="COMPLAINT_CONTENT" property="complaintContent"
+                jdbcType="VARCHAR"/>
+        <result column="ORDER_CREATE_DATE" property="orderCreateDate"
+                jdbcType="BIGINT"/>
+        <result column="TAKE_ORDER_DATE_TT" property="takeOrderDateTt"
+                jdbcType="BIGINT"/>
+        <result column="LAST_RETURN_ORDER_DATE" property="lastReturnOrderDate"
+                jdbcType="BIGINT"/>
+        <result column="IS_SUCCESS" property="isSuccess" jdbcType="INTEGER"/>
+        <result column="ORDER_HANDLER" property="orderHandler"
+                jdbcType="VARCHAR"/>
+        <result column="HANDLER_CHANGE_AREA" property="handlerChangeArea"
+                jdbcType="VARCHAR"/>
+        <result column="FAULT_TYPE" property="faultType" jdbcType="VARCHAR"/>
+        <result column="HANDLE_MIN" property="handleMin" jdbcType="INTEGER"/>
+        <result column="IS_TIMEOUT" property="isTimeout" jdbcType="INTEGER"/>
+        <result column="INTERVENE_PERSON" property="intervenePerson"
+                jdbcType="VARCHAR"/>
+        <result column="ORDER_STATUS" property="orderStatus" jdbcType="INTEGER"/>
+        <result column="CALL_OUT_WAY" property="callOutWay" jdbcType="INTEGER"/>
+        <result column="IS_SATISFACTION" property="isSatisfaction"
+                jdbcType="INTEGER"/>
+        <result column="CREATE_DATE" property="createDate" jdbcType="BIGINT"/>
+        <result column="CREATER" property="creater" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+		ID,ORDER_NO,ORDER_TYPE,COMPLAINT_PHONENO,INTERNET_ACCOUNT,GUEST_NAME,GUEST_ADDRESS,CITY,AREA,COMPLAINT_CONTENT,ORDER_CREATE_DATE,TAKE_ORDER_DATE_TT,LAST_RETURN_ORDER_DATE,IS_SUCCESS,ORDER_HANDLER,HANDLER_CHANGE_AREA,FAULT_TYPE,HANDLE_MIN,IS_TIMEOUT,INTERVENE_PERSON,ORDER_STATUS,CALL_OUT_WAY,IS_SATISFACTION,CREATE_DATE,CREATER
+	</sql>
+
+    <insert id="save" parameterType="com.tiankui.reactService.entity.WorkOrder">
+		insert into TD_ORDER_TT10086_INFO (ID,ORDER_NO,ORDER_TYPE,COMPLAINT_PHONENO,INTERNET_ACCOUNT,GUEST_NAME,GUEST_ADDRESS,CITY,AREA,COMPLAINT_CONTENT,ORDER_CREATE_DATE,TAKE_ORDER_DATE_TT,LAST_RETURN_ORDER_DATE,IS_SUCCESS,ORDER_HANDLER,HANDLER_CHANGE_AREA,FAULT_TYPE,HANDLE_MIN,IS_TIMEOUT,INTERVENE_PERSON,ORDER_STATUS,CALL_OUT_WAY,IS_SATISFACTION,CREATE_DATE,CREATER)
+		values (#{id},#{orderNo},#{orderType},#{complaintPhoneno},#{internetAccount},#{guestName},#{guestAddress},#{city},#{area},#{complaintContent},#{orderCreateDate},#{takeOrderDateTt},#{lastReturnOrderDate},#{isSuccess},#{orderHandler},#{handlerChangeArea},#{faultType},#{handleMin},#{isTimeout},#{intervenePerson},#{orderStatus},#{callOutWay},#{isSatisfaction},#{createDate},#{creater})
+	</insert>
+
+    <select id="getListByMap" parameterType="java.util.Map" resultMap="BaseResultMap">
+        SELECT * FROM(SELECT A.*, ROWNUM RN
+        FROM (
+        select
+        <include refid="Base_Column_List"/>
+        from TD_ORDER_TT10086_INFO
+        <where>
+            <if test="orderNo != null and orderNo != ''">
+                ORDER_NO like #{orderNo}
+            </if>
+            <if test="complaintPhoneno != null and complaintPhoneno != ''">
+                and COMPLAINT_PHONENO like #{complaintPhoneno}
+            </if>
+            <if test="guestName != null and guestName != ''">
+                and GUEST_NAME like #{guestName}
+            </if>
+            <if test="guestAddress != null and guestAddress != ''">
+                and GUEST_ADDRESS like #{guestAddress}
+            </if>
+            <if test="area != null and area != ''">
+                and AREA = #{area}
+            </if>
+            <if test="faultType != null and faultType != ''">
+                and FAULT_TYPE = #{faultType}
+            </if>
+            <if test="orderType != null and orderType != ''">
+                and ORDER_TYPE = #{orderType}
+            </if>
+        </where>
+        order by CREATE_DATE desc) A)
+        WHERE RN BETWEEN #{start} AND #{limit}
+    </select>
+
+    <select id="getList" parameterType="java.util.Map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from TD_ORDER_TT10086_INFO
+        <where>
+            <if test="orderNo != null and orderNo != ''">
+                ORDER_NO like #{orderNo}
+            </if>
+            <if test="complaintPhoneno != null and complaintPhoneno != ''">
+                and COMPLAINT_PHONENO like #{complaintPhoneno}
+            </if>
+            <if test="guestName != null and guestName != ''">
+                and GUEST_NAME like #{guestName}
+            </if>
+            <if test="guestAddress != null and guestAddress != ''">
+                and GUEST_ADDRESS like #{guestAddress}
+            </if>
+            <if test="area != null and area != ''">
+                and AREA = #{area}
+            </if>
+            <if test="faultType != null and faultType != ''">
+                and FAULT_TYPE = #{faultType}
+            </if>
+            <if test="orderType != null and orderType != ''">
+                and ORDER_TYPE = #{orderType}
+            </if>
+        </where>
+        order by CREATE_DATE desc
+    </select>
+
+    <select id="getCountListByMap" parameterType="java.lang.String"
+            resultType="java.lang.Integer">
+        select
+        count(*)
+        from TD_ORDER_TT10086_INFO
+        <where>
+            <if test="orderNo != null and orderNo != ''">
+                ORDER_NO like #{orderNo}
+            </if>
+            <if test="complaintPhoneno != null and complaintPhoneno != ''">
+                and COMPLAINT_PHONENO like #{complaintPhoneno}
+            </if>
+            <if test="guestName != null and guestName != ''">
+                and GUEST_NAME like #{guestName}
+            </if>
+            <if test="guestAddress != null and guestAddress != ''">
+                and GUEST_ADDRESS like #{guestAddress}
+            </if>
+            <if test="area != null and area != ''">
+                and AREA = #{area}
+            </if>
+            <if test="faultType != null and faultType != ''">
+                and FAULT_TYPE = #{faultType}
+            </if>
+            <if test="orderType != null and orderType != ''">
+                and ORDER_TYPE = #{orderType}
+            </if>
+        </where>
+    </select>
+
+    <insert id="insertByBatch" parameterType="java.util.List">
+        insert into TD_ORDER_TT10086_INFO (
+        <include refid="Base_Column_List"/>
+        )
+        <foreach collection="list" item="item" index="index"
+                 separator="UNION ALL">
+            SELECT
+            #{item.id},#{item.orderNo},#{item.orderType},
+            #{item.complaintPhoneno},#{item.internetAccount},
+            #{item.guestName},#{item.guestAddress},#{item.city},
+            #{item.area},#{item.complaintContent},#{item.orderCreateDate},
+            #{item.takeOrderDateTt},#{item.lastReturnOrderDate},#{item.isSuccess},
+            #{item.orderHandler},#{item.handlerChangeArea},#{item.faultType},
+            #{item.handleMin},#{item.isTimeout},#{item.intervenePerson},
+            #{item.orderStatus},#{item.callOutWay},#{item.isSatisfaction},
+            #{item.createDate},#{item.creater}
+            FROM dual
+        </foreach>
+    </insert>
+    
+    <select id="getWorkOrderById" parameterType="java.lang.String" resultMap="BaseResultMap">
+    	select <include refid="Base_Column_List"/> from TD_ORDER_TT10086_INFO where ID = #{id}
+    </select>
+    
+    <select id="getOrderByOrderNo" parameterType="java.lang.String" resultMap="BaseResultMap">
+    	select <include refid="Base_Column_List"/> from TD_ORDER_TT10086_INFO where ORDER_NO = #{orderNo}
+    </select>
+    
+    <update id="updateBatch" parameterType="java.util.List">
+		<foreach collection="list" item="item" index="index" open="begin" close=";end;" separator=";">
+			update TD_ORDER_TT10086_INFO
+			<set>
+			ORDER_TYPE = #{item.orderType},
+            COMPLAINT_PHONENO = #{item.complaintPhoneno},INTERNET_ACCOUNT = #{item.internetAccount},
+            GUEST_NAME = #{item.guestName},GUEST_ADDRESS = #{item.guestAddress},CITY = #{item.city},
+            AREA = #{item.area},COMPLAINT_CONTENT = #{item.complaintContent},ORDER_CREATE_DATE = #{item.orderCreateDate},
+            TAKE_ORDER_DATE_TT = #{item.takeOrderDateTt},LAST_RETURN_ORDER_DATE = #{item.lastReturnOrderDate},
+            IS_SUCCESS = #{item.isSuccess},ORDER_HANDLER = #{item.orderHandler},
+            HANDLER_CHANGE_AREA = #{item.handlerChangeArea},FAULT_TYPE = #{item.faultType},
+            HANDLE_MIN = #{item.handleMin},IS_TIMEOUT = #{item.isTimeout},INTERVENE_PERSON = #{item.intervenePerson},
+            ORDER_STATUS = #{item.orderStatus},CALL_OUT_WAY = #{item.callOutWay},IS_SATISFACTION = #{item.isSatisfaction}
+            </set>
+            where ORDER_NO = #{item.orderNo}
+		</foreach>
+	</update>
+
+    <delete id="detele" parameterType="java.lang.String">
+		delete from TD_ORDER_TT10086_INFO where id = #{id}
+	</delete>
+</mapper>

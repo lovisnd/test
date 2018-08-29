@@ -1,0 +1,144 @@
+package com.tiankui.reactService.mapper;
+
+import java.util.List;
+import java.util.Map;
+
+import com.tiankui.reactService.entity.GuestInfo;
+
+/**
+ * 
+ * @ClassName: GuestInfoMapper
+ * @Description: TODO 客户信息持久层
+ * @author zhouao
+ * @date 2018年7月24日
+ *
+ */
+public interface GuestInfoMapper {
+
+	/**
+	 * @return 
+	 * 
+	 * @Title: save
+	 * @Description: TODO 保存客户信息
+	 * @param @param vo    参数
+	 * @return void    返回类型
+	 * @throws
+	 */
+	int save(GuestInfo vo);
+
+	/**
+	 * 
+	 * @Title: getListByMap
+	 * @Description: TODO 按条件查询客户信息
+	 * @param @param map
+	 * @param @return    参数
+	 * @return List<GuestInfo>    返回类型
+	 * @throws
+	 */
+	List<GuestInfo> getListByMap(Map<String, Object> map);
+
+	/**
+	 * 
+	 * @Title: getAreas
+	 * @Description: TODO 查询客户所在区域集合
+	 * @param @return    参数
+	 * @return List<String>    返回类型
+	 * @throws
+	 */
+	List<String> getAreas();
+
+	/**
+	 * 
+	 * @Title: detele
+	 * @Description: TODO 根据id删除客户信息
+	 * @param @param id
+	 * @param @return    参数
+	 * @return int    返回类型
+	 * @throws
+	 */
+	int detele(String id);
+
+	/**
+	 * 
+	 * @Title: getGuestInfoById
+	 * @Description: TODO 根据ID查询客户信息
+	 * @param @param id
+	 * @param @return    参数
+	 * @return GuestInfo    返回类型
+	 * @throws
+	 */
+	GuestInfo getGuestInfoById(String id);
+
+	/**
+	 * 
+	 * @Title: update
+	 * @Description: TODO 修改客户信息
+	 * @param @param map
+	 * @param @return    参数
+	 * @return int    返回类型
+	 * @throws
+	 */
+	int update(Map<String, Object> map);
+
+	/**
+	 * 
+	 * @Title: getGuestNo
+	 * @Description: TODO 获取客户信息编码个数
+	 * @param @param guestNo
+	 * @param @return    参数
+	 * @return int    返回类型
+	 * @throws
+	 */
+	int getGuestNo(String guestNo);
+	
+	/**
+	 * 
+	 * @Title: insertByBatch
+	 * @Description: TODO 批量插入
+	 * @param @param list    参数
+	 * @return void    返回类型
+	 * @throws
+	 */
+	void insertByBatch(List<GuestInfo> list);
+	
+	/**
+	 * 
+	 * @Title: getGuestInfoById
+	 * @Description: TODO 根据ID查询客户信息
+	 * @param @param id
+	 * @param @return    参数
+	 * @return GuestInfo    返回类型
+	 * @throws
+	 */
+	GuestInfo getGuestInfoByNo(String guestNo);
+
+	/**
+	 * 
+	 * @Title: updateBatch
+	 * @Description: TODO 批量更新客户编号重复的记录
+	 * @param @param repeatList    参数
+	 * @return void    返回类型
+	 * @throws
+	 */
+	void updateBatch(List<GuestInfo> list);
+
+	/**
+	 * 
+	 * @Title: getCountListByMap
+	 * @Description: TODO 条件查询所有客户信息总记录数
+	 * @param @param map
+	 * @param @return    参数
+	 * @return int    返回类型
+	 * @throws
+	 */
+	int getCountListByMap(Map<String, Object> map);
+
+	/**
+	 * 条件查询
+	 * @param map
+	 * @return
+	 */
+	List<GuestInfo> getList(Map<String,Object> map);
+
+	List<GuestInfo> getCliqueNameByName(String cliqueName);
+}

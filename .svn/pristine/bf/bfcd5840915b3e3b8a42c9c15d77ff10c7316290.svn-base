@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.tiankui.reactService.mapper.HWStatisticMapper">
+
+	<resultMap type="com.tiankui.reactService.entity.HWStatistic"
+		id="BaseMap">
+		<result column="FAULTTYPE" property="faultType" jdbcType="VARCHAR" />
+		<result column="FAULTAREA" property="faultArea" jdbcType="VARCHAR" />
+		<result column="ORDERHANDLER" property="orderHandler" jdbcType="VARCHAR" />
+		<result column="ACCOUNT" property="account" jdbcType="VARCHAR" />
+		<result column="FAULTSUCCESSLV" property="faultSuccessLv"
+			jdbcType="DOUBLE" />
+		<result column="REPEATFAULT" property="repeatFault" jdbcType="DOUBLE" />
+		<result column="FAULTLV" property="faultLv" jdbcType="DOUBLE" />
+		<result column="SUM" property="sum" jdbcType="INTEGER" />
+		<result column="DURATION" property="duration" jdbcType="DOUBLE" />
+	</resultMap>
+
+	<select id="statisticByFault" resultMap="BaseMap" parameterType="java.util.Map">
+		select FAULT_TYPE as faultType,count(FAULT_TYPE) as sum from
+		TD_ORDER_TT10086_INFO where ORDER_CREATE_DATE &gt; #{start} and
+		ORDER_CREATE_DATE &lt; #{end} group by FAULT_TYPE
+	</select>
+
+	<select id="statisticByArea" resultMap="BaseMap" parameterType="java.util.Map">
+		select AREA as faultArea,count(AREA) as sum from TD_ORDER_TT10086_INFO
+		where ORDER_CREATE_DATE &gt; #{start} and ORDER_CREATE_DATE &lt;
+		#{end} group by AREA
+	</select>
+
+	<select id="statisticByOrderhandler" resultMap="BaseMap"
+		parameterType="java.util.Map">
+		select ORDER_HANDLER as orderHandler,ROUND(avg(HANDLE_MIN)/60,2) as
+		duration
+		from TD_ORDER_TT10086_INFO
+		<where>
+			ORDER_CREATE_DATE &gt; #{start} and
+			ORDER_CREATE_DATE &lt; #{end}
+			<if test="area != null and area != ''">
+				and area = #{area}
+			</if>
+		</where>
+		group by ORDER_HANDLER
+	</select>
+
+	<select id="statisticBySuccessLv" resultMap="BaseMap"
+		parameterType="java.util.Map">
+		select
+		td1.ORDER_HANDLER as
+		orderHandler,round(nvl(td2.success,0)/td1.sum,4)*100
+		FAULTSUCCESSLV
+		from (
+		select
+		ORDER_HANDLER,
+		count(*) sum
+		from TD_ORDER_TT10086_INFO
+		<where>
+			ORDER_CREATE_DATE &gt; #{start} and
+			ORDER_CREATE_DATE &lt; #{end}
+			<if test="area != null and area != ''">
+				and area = #{area}
+			</if>
+		</where>
+		group by ORDER_HANDLER) td1 left join (
+		select ORDER_HANDLER,count(*)
+		success
+		from TD_ORDER_TT10086_INFO
+		<where>
+			IS_SUCCESS = 1 and
+			ORDER_CREATE_DATE &gt; #{start} and
+			ORDER_CREATE_DATE
+			&lt; #{end}
+			<if test="area != null and area != ''">
+				and area = #{area}
+			</if>
+		</where>
+		group by ORDER_HANDLER
+		) td2
+		on td1.ORDER_HANDLER = td2.ORDER_HANDLER
+	</select>
+
+	<select id="statisticByRepeatAccount" resultMap="BaseMap"
+		parameterType="java.util.Map">
+		SELECT account, sum
+		FROM (
+		SELECT INTERNET_ACCOUNT AS account, COUNT(*)
+		AS sum
+		FROM TD_ORDER_TT10086_INFO
+		<where>
+			ORDER_CREATE_DATE &gt; #{start} and
+			ORDER_CREATE_DATE &lt; #{end}
+			<if test="area != null and area != ''">
+				and area = #{area}
+			</if>
+		</where>
+		GROUP BY INTERNET_ACCOUNT
+		) o
+		WHERE o.sum > 1
+	</select>
+
+	<select id="statisticByFaultLv" resultMap="BaseMap"
+		parameterType="java.util.Map">
+		select td1.ORDER_HANDLER ORDERHANDLER,td1.sum,round(td1.sum/td2.sum,4)*100
+		FAULTLV from
+		(select
+		ORDER_HANDLER,count(*) sum,AREA from TD_ORDER_TT10086_INFO
+		<where>
+			ORDER_CREATE_DATE &gt; #{start} and
+			ORDER_CREATE_DATE &lt; #{end}
+			<if test="area != null and area != ''">
+				and area = #{area}
+			</if>
+		</where>
+		group by ORDER_HANDLER,AREA) td1 left join
+		(select AREA,count(*) sum from TD_ORDER_TT10086_INFO
+		<where>
+			ORDER_CREATE_DATE &gt; #{start} and
+			ORDER_CREATE_DATE &lt; #{end}
+			<if test="area != null and area != ''">
+				and area = #{area}
+			</if>
+		</where>
+		group
+		by AREA) td2 on td1.area = td2.area
+	</select>
+</mapper>

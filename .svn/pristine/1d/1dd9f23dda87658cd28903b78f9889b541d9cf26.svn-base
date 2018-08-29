@@ -1,0 +1,325 @@
+package com.tiankui.reactService.controller;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.ibatis.annotations.Param;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.alibaba.fastjson.JSONObject;
+import com.tiankui.reactService.entity.DateOrder;
+import com.tiankui.reactService.entity.GuestInfo;
+import com.tiankui.reactService.entity.JkWorkOrder;
+import com.tiankui.reactService.entity.Result;
+import com.tiankui.reactService.entity.ResultArray;
+import com.tiankui.reactService.entity.TSyslog;
+import com.tiankui.reactService.entity.WorkOrder;
+import com.tiankui.reactService.enums.LogLevel;
+import com.tiankui.reactService.enums.LogType;
+import com.tiankui.reactService.interceptor.LoginInterceptor;
+import com.tiankui.reactService.service.IJkWorkOrderService;
+import com.tiankui.reactService.service.ISyslogService;
+import com.tiankui.reactService.util.ExcelUtils;
+import com.tiankui.reactService.util.IPUtil;
+import com.tiankui.reactService.util.LocalCache;
+import com.tiankui.reactService.util.ObjectUtil;
+
+/**
+ * @author zhangmingrui
+ * @ClassName: JkWorkOrderController
+ * @Description: TODO 集客工单处理接入层
+ * @date 2018年8月06日
+ */
+@RestController
+@RequestMapping("/api/jkworkOrder")
+public class JkWorkOrderController {
+	//本地缓存KEY
+	private static String KEY = "JK-Order";
+	@Autowired
+	private IJkWorkOrderService jkworkOrderService;
+   
+	@Autowired
+	public ISyslogService syslogService;
+    /**
+     * @Title: list @Description: TODO 获取集客工单信息列表 @param map 参数 @return
+     * Result<List<WorkOrder>> 返回类型 @throws
+     */
+    @RequestMapping(value = "/list")
+    public Result<List<JkWorkOrder>> list(HttpServletRequest request, @RequestParam String token, @RequestBody Map<String, Object> map) {
+        Result<List<JkWorkOrder>> result = new Result<List<JkWorkOrder>>();
+        List<JkWorkOrder> list = jkworkOrderService.getListByMap(map);
+        int count = jkworkOrderService.getCountList(map);
+        result.setData(list);
+        result.setCount(count);
+        result.setStatus(1);
+        result.setMessage("查询成功！");
+        TSyslog tSyslog = new TSyslog(LogType.DATA_QUERY_SUCCESS.getIndex(), LogLevel.INFO.getIndex(),
+				"集客工单列表数据查询成功！");
+    	syslogService.insert(tSyslog,token,IPUtil.getIpAdrress(request));
+        return result;
+    }
+    /**
+     * @Title: sug @Description: TODO 获取集团客户名称列表 @param map 参数 @return
+     * String 返回类型 @throws
+     */
+    @RequestMapping(value = "/sug",produces = {"application/text;charset=UTF-8"})
+    public String list(HttpServletRequest request,HttpServletResponse response,@RequestParam String token) throws UnsupportedEncodingException {
+    	//响应到前台为utf-8
+    	request.setCharacterEncoding("utf-8");  
+    	response.setContentType("text/html;charset=utf-8");
+    	ArrayList<Object> resultAll =new ArrayList<Object>();
+        String callback = request.getParameter("callback");
+        String cliqueName = request.getParameter("cliqueName");
+        List<GuestInfo> list = jkworkOrderService.getCliqueNameByName(cliqueName);
+        if(list.size()==0){
+        	ArrayList<Object> res =new ArrayList<Object>();
+        	res.add(cliqueName);
+        	res.add("");
+        	res.add("");
+        	res.add("");
+        	resultAll.add(res);
+        }else{
+	        for (GuestInfo guestInfo : list) {
+	            ArrayList<Object> res =new ArrayList<Object>();
+	            res.add(guestInfo.getGuestName());
+	            res.add(guestInfo.getGuestNo());
+	            res.add(guestInfo.getGuestAddress());
+	            res.add(guestInfo.getArea());
+	            resultAll.add(res);
+	            if(resultAll.size()>20){
+	            	break;
+	            }
+			}
+        }
+        // 经过该接口一系列操作，然后得到data，将data返回给调用者
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("result", resultAll);
+        String jsonString = JSONObject.toJSONString(map);
+        TSyslog tSyslog = new TSyslog(LogType.DATA_QUERY_SUCCESS.getIndex(), LogLevel.INFO.getIndex(),
+				"集团列表数据查询成功！");
+    	syslogService.insert(tSyslog,token,IPUtil.getIpAdrress(request));
+        return callback + "("+jsonString+")";
+    }
+
+    /**
+    * 添加工单
+    * @param map
+    * @param token
+    * @return
+    */
+   @RequestMapping(value = "/add")
+   public Result<Integer> addJkInfo(@RequestBody Map<String,Object> map,@RequestParam String token,HttpServletRequest request){
+       Result<Integer> result = new Result<Integer>();
+       map.put("token", token);
+       int resultNum = jkworkOrderService.addJkWorkOrder(map,IPUtil.getIpAdrress(request));
+       result.setData(resultNum);
+       if (resultNum == 1) {
+           result.setStatus(1);
+           result.setMessage("添加成功！");
+   		   LocalCache localCache = LocalCache.getInStance();
+   		   localCache.setLocalCache(KEY,1000, null);
+       }
+       return result;
+   }
+   
+   
+   /**
+    * 根据工单号查询工单信息
+    * @param id
+    * @return
+    */
+   @RequestMapping(value = "/jkOrderNo")
+   public Result<Integer> getOrderNo(@RequestParam String id){
+       int num = jkworkOrderService.getJkOrderNo(id);
+       Result<Integer> result = new Result<Integer>();
+       result.setData(num);
+       result.setStatus(1);
+       result.setMessage("查询成功！");
+       return result;
+   }
+   
+   /**
+    * @param @param  id
+    * @param @return 参数
+    * @return ResultArray<User>    返回类型
+    * @throws
+    * @Title: getGuestInfoById
+    * @Description: TODO 根据ID查询客户信息
+    */
+   @RequestMapping(value = "/queryDetail")
+   public Result<Map<String, Object>> getOrderById(@RequestParam String id) {
+       Map<String, Object> orderMap = jkworkOrderService.getJkWorkOrderById(id);
+       Result<Map<String, Object>> result = new Result<Map<String, Object>>();
+       result.setMessage("查询成功！");
+       if (ObjectUtil.isNotNull(orderMap)) {
+           result.setData(orderMap);
+           result.setStatus(1);
+       } else {
+           result.setData(null);
+           result.setStatus(0);
+       }
+       return result;
+   }
+   
+   /**
+    * @param @param  id
+    * @param @return 参数
+    * @return ResultArray<User>    返回类型
+    * @throws
+    * @Title: getGuestInfoById
+    * @Description: TODO 根据ID查询客户信息
+    */
+   @RequestMapping(value = "/query")
+   public ResultArray<JkWorkOrder> getWorkOrderById(@RequestParam String id) {
+	   JkWorkOrder order = jkworkOrderService.getOrderById(id);
+       ResultArray<JkWorkOrder> result = new ResultArray<JkWorkOrder>();
+       result.setMessage("查询成功！");
+       if (ObjectUtil.isNotNull(order)) {
+    	   JkWorkOrder[] jkworkOrders = {order};
+           result.setData(jkworkOrders);
+           result.setStatus(1);
+       } else {
+           result.setData(null);
+           result.setStatus(0);
+       }
+       return result;
+   }
+   /**
+    * 更新工单信息（归档）
+    * @param id
+    * @param map
+    * @return
+    */
+   @RequestMapping(value = "/edit")
+   public Result<Integer> editJkWorkOrderInfo(HttpServletRequest request, @RequestParam String token, @RequestParam String id, @RequestBody Map<String, Object> map){
+       int resultNum = jkworkOrderService.updateJkWorkOrder(id,map);
+       Result<Integer> result = new Result<Integer>();
+       if (resultNum == 1) {
+           result.setData(resultNum);
+           result.setStatus(1);
+           result.setMessage("归档成功！");
+           TSyslog tSyslog = new TSyslog(LogType.DATA_UPDATE_SUCCESS.getIndex(), LogLevel.INFO.getIndex(),
+   				"集客工单数据修改成功！");
+       	   syslogService.insert(tSyslog,token,IPUtil.getIpAdrress(request));
+       }else{
+           result.setData(resultNum);
+           result.setStatus(0);
+           result.setMessage("归档失败！");
+           TSyslog tSyslog = new TSyslog(LogType.DATA_UPDATE_FAIL.getIndex(), LogLevel.INFO.getIndex(),
+      				"集客工单数据修改失败！");
+           syslogService.insert(tSyslog,token,IPUtil.getIpAdrress(request));
+       }
+       return result;
+   }
+   /**
+    * 查询工单状态
+    * @param id
+    * @return
+    */
+   
+   @RequestMapping(value = "/queryState")
+   public ResultArray<JkWorkOrder> getOrderState(@RequestParam String id) {
+	   JkWorkOrder order = jkworkOrderService.getOrderById(id);
+       ResultArray<JkWorkOrder> result = new ResultArray<JkWorkOrder>();
+       Integer orderState = order.getOrderState();
+       if (orderState==2) {
+    	   JkWorkOrder[] jkworkOrders = {order};
+           result.setData(jkworkOrders);
+           result.setStatus(1);
+           result.setMessage("查询成功！");
+       } else if(orderState==3){
+           result.setData(null);
+           result.setStatus(0);
+           result.setMessage("工单已归档，请勿重新归档");
+       } else if(orderState==1){
+           result.setData(null);
+           result.setStatus(0);
+           result.setMessage("工单还未回单，暂时不能归档");
+       }
+       return result;
+   }
+   
+   
+   /**
+    * 导出工单信息
+    *
+    * @param map
+    * @param request
+    * @param response
+    */
+   @RequestMapping(value = "/export")
+   public void export(@RequestParam String token,@RequestParam Map<String, Object> map, HttpServletRequest request,
+                      HttpServletResponse response) {
+       String[] excelHeader = {"工单编号", "工单类型", "投诉号码", "客户名称", "集团名称", "集团编号" , "集团地址", "客户所在城市", "客户所在区县", "投诉内容", "工单创建时间", "装维人员接单时间", "投诉是否解决", "工单处理人-装维人员", "故障类型", "装维人员处理时长/min", "是否处理超时","是否转发给光纤组", "转发后的装维人员","转发后接单时间","派发给的装维人员", "工单状态", "外呼方式", "用户满意情况", "创建时间", "创建人"};
+       String[] ds_titles = {"id", "orderState", "phoneNo", "guestName","cliqueName","cliqueNo", "cliqueAddress", "city", "area", "complainContent", "createDate", "takeOrderDate", "isSuccess", "orderHandler", "faultType", "handleMin", "isTimeout","isTranspond", "transpondPerson","transpondTakeOrderDate","distributePerson", "orderState", "callOutWay", "isSatisfaction", "createDate", "creater"};
+       int[] ds_format = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 7, 7, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,7,1};
+       int[] widths = {256 * 30, 256 * 10, 256 * 15, 256 * 45, 256 * 45, 256 * 25, 256 * 45, 256 * 15, 256 * 15, 256 * 50, 256 * 20, 256 * 20, 256 * 25, 256 * 20, 256 * 45, 256 * 15, 256 * 28, 256 * 15, 256 * 15, 256 * 15, 256 * 15, 256 * 15, 256 * 20, 256 * 15, 256 * 20, 256 * 15};
+       List<Map<String, Object>> list = jkworkOrderService.getList(map);
+       try {
+           ExcelUtils.export("集客工单信息表", "工单信息", excelHeader, ds_titles, ds_format, widths, list, request, response);
+           TSyslog tSyslog = new TSyslog(LogType.FILE_DOWNLOAD_SUCCESS.getIndex(), LogLevel.INFO.getIndex(),
+      				"集客工单数据导出成功！");
+           syslogService.insert(tSyslog,token,IPUtil.getIpAdrress(request));
+       } catch (IOException e) {
+    	   TSyslog tSyslog = new TSyslog(LogType.FILE_DOWNLOAD_FAIL.getIndex(), LogLevel.INFO.getIndex(),
+     				"集客工单数据导出失败！");
+           syslogService.insert(tSyslog,token,IPUtil.getIpAdrress(request));
+           e.printStackTrace();
+       }
+   }
+     
+   /**
+    * 查询紧急工单
+    */
+   
+   @RequestMapping(value = "/queryUrgentData")
+   public  Result<List<JkWorkOrder>> queryUrgentData(){
+	   List<JkWorkOrder> list = jkworkOrderService.queryUrgentData();
+	   Result<List<JkWorkOrder>> result = new Result<List<JkWorkOrder>>();
+       result.setData(list);
+       result.setStatus(1);
+       result.setMessage("查询成功！");
+       return result;
+   }
+   
+   /**
+    * 查询每个月工单数量
+    */
+   @RequestMapping(value="/queryDateOrder")
+   public  Result<HashMap<String, Object>> queryDateOrder(){
+		Result<HashMap<String, Object>> result = new Result<HashMap<String,Object>>();
+		HashMap<String, Object> list = jkworkOrderService.queryDateOrder();
+		int resultNum = jkworkOrderService.queryOrderCount();
+		result.setData(list);
+		result.setStatus(1);
+		result.setCount(resultNum);
+		result.setMessage("查询成功！");
+		return result;
+   }
+   /**
+    * 查询及时率的工单
+    * @return
+    */
+   @RequestMapping(value = "/queryOrderTimely")
+   public  Result<Integer> queryOrderTimely(){
+   	int count = jkworkOrderService.queryOrderTimely();
+   	Result<Integer> result = new Result<Integer>();
+           result.setData(count);
+           result.setStatus(1);
+           result.setMessage("查询成功！");
+       return result;
+   }
+}

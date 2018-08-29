@@ -1,0 +1,76 @@
+package com.tiankui.reactService.controller;
+
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.tiankui.reactService.entity.EquipType;
+import com.tiankui.reactService.entity.Result;
+import com.tiankui.reactService.service.ICollectionService;
+
+@Controller
+@RequestMapping(value = "/api/collection")
+public class CollectionController {
+
+	@Autowired
+	private ICollectionService collectionService;
+	
+    @ResponseBody
+    @RequestMapping(value = "/equipList")
+    public Result<List<EquipType>> getEquipList() {
+    	List<EquipType> equipTypeList = collectionService.getList();
+        Result<List<EquipType>> result = new Result<List<EquipType>>();
+        if (equipTypeList.size() > 0) {
+            result.setData(equipTypeList);
+            result.setCount(equipTypeList.size());
+            result.setMessage("查询成功！");
+            result.setStatus(1);
+        } else {
+            result.setData(null);
+            result.setCount(0);
+            result.setMessage("查询成功！");
+            result.setStatus(0);
+        }
+        return result;
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/flowRate")
+    public Result<Map<String, Object>> getFlow() {
+        Result<Map<String, Object>> result = new Result<Map<String, Object>>();
+        Map<String, Object> map = collectionService.getFlow();
+        result.setData(map);
+        result.setCount(map.size());
+        result.setMessage("查询成功！");
+        result.setStatus(1);
+        return result;
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/deviceStatus")
+    public Result<Map<String, Object>> queryDeviceStatus() {
+        Result<Map<String, Object>> result = new Result<Map<String, Object>>();
+        Map<String, Object> map = collectionService.getDeviceStatus();
+        result.setData(map);
+        result.setCount(map.size());
+        result.setMessage("查询成功！");
+        result.setStatus(1);
+        return result;
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/table")
+    public Result<Map<String, Object>> getTable() {
+        Result<Map<String, Object>> result = new Result<Map<String, Object>>();
+        Map<String, Object> map = collectionService.getTable();
+        result.setData(map);
+        result.setCount(Integer.valueOf(map.get("count").toString()));
+        result.setMessage("查询成功！");
+        result.setStatus(1);
+        return result;
+    }
+}

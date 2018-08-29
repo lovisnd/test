@@ -1,0 +1,123 @@
+package com.tiankui.reactService.service.impl;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.tiankui.reactService.entity.Role;
+import com.tiankui.reactService.entity.TMenu;
+import com.tiankui.reactService.entity.TMenuExample;
+import com.tiankui.reactService.entity.TMenuExample.Criteria;
+import com.tiankui.reactService.mapper.TMenuMapper;
+import com.tiankui.reactService.service.ITMenuService;
+import com.tiankui.reactService.util.ObjectUtil;
+import com.tiankui.reactService.util.UUIDUtil;
+
+@Service
+public class TMenuService implements ITMenuService {
+
+	@Autowired
+	private TMenuMapper menuMapper;
+
+	@Override
+	public List<TMenu> getAll() {
+		TMenuExample menuExample = new TMenuExample();
+		Criteria criteria = menuExample.createCriteria();
+		criteria.andisShowEqualTo(1);
+		menuExample.setOrderByClause("sort,createtime asc");
+		List<TMenu> list = menuMapper.selectByExample(menuExample);
+		for (TMenu tMenu : list) {
+			if (tMenu.getParentId() == null) {
+				tMenu.setParentId("");
+			}
+		}
+		return list;
+	}
+
+	@Override
+	public int sortMenu(Map<String, Object> map) {
+		Map<String, Object> hashMap = new HashMap<String, Object>();
+		String id = map.get("id").toString();
+		int direction = Integer.valueOf(map.get("direction").toString());
+		TMenu menu = menuMapper.selectByPrimaryKey(id);
+		int oldSort = menu.getSort();
+		int newSort = menu.getSort() + direction;
+		hashMap.put("sort", newSort);
+		hashMap.put("parentId", menu.getParentId());
+		TMenu tMenu = menuMapper.getMenuByExample(hashMap);
+		tMenu.setSort(oldSort);
+		menu.setSort(newSort);
+		menuMapper.updateMenuSort(menu);
+		menuMapper.updateMenuSort(tMenu);
+		return 1;
+	}
+
+	@Override
+	public TMenu getMenu(String id) {
+		TMenu menu = menuMapper.selectByPrimaryKey(id);
+		return menu;
+	}
+
+	@Override
+	public int editMenu(String id, Map<String, Object> map) {
+		map.put("id", id);
+		if (ObjectUtil.isNull(map.get("parentId"))) {
+			map.put("parentId", "");
+		}
+		long time = new Date().getTime();
+		map.put("updateTime", time);
+		int result = menuMapper.updateMenu(map);
+		return result;
+	}
+
+	@Override
+	public int addMenu(Map<String, Object> map) {
+		String uuid = UUIDUtil.getUUID();
+		map.put("id", uuid);
+		map.put("deleted", 0);
+		String parentId = ObjectUtil.isNull(map.get("parentId")) ? "" : map.get("parentId").toString();
+		int sort = menuMapper.getSortByPrenId(parentId);
+		map.put("sort", ObjectUtil.isNull(sort) ? 0 : sort + 1);
+		map.put("createTime", new Date().getTime());
+		int result = menuMapper.insertMenu(map);
+		return result;
+	}
+
+	@Override
+	public int delMenu(String id) {
+		int result = menuMapper.delMenu(id);
+		return result;
+	}
+
+	@Override
+	public List<TMenu> getRoleRight(List<Role> list) {
+		ArrayList<TMenu> allList = new ArrayList<TMenu>();
+		for (Role role : list) {
+			List<TMenu> rightList = menuMapper.getRightByRole(role.getId());
+			allList.addAll(rightList);
+		}
+		ArrayList<TMenu> removeList = new ArrayList<TMenu>();
+		for (int i = 0; i <= allList.size() - 1; i++) {
+			for (int j = i + 1; j < allList.size(); j++) {
+				if (allList.get(i).getId().equals(allList.get(j).getId())) {
+					removeList.add(allList.get(j));
+				}
+			}
+		}
+		allList.removeAll(removeList);
+		for (TMenu tMenu : allList) {
+			if (tMenu.getParentId() == null) {
+				tMenu.setParentId("");
+			}
+		}
+		Collections.sort(allList);
+		return allList;
+	}
+
+}

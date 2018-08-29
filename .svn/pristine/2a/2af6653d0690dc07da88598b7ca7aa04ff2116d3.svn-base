@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.tiankui.reactService.mapper.HWStatisticMapper" >
+  
+  <resultMap type="com.tiankui.reactService.entity.HWStatistic" id="BaseMap">
+  	<result column="FAULTTYPE" property="faultType" jdbcType="VARCHAR" />
+    <result column="FAULTAREA" property="faultArea" jdbcType="VARCHAR" />
+    <result column="FAULTDURATION" property="faultDuration" jdbcType="VARCHAR" />
+    <result column="FAULTSUCCESSLV" property="faultSuccessLv" jdbcType="VARCHAR" />
+    <result column="REPEATFAULT" property="repeatFault" jdbcType="VARCHAR" />
+    <result column="FAULTLV" property="faultLv" jdbcType="VARCHAR" />
+    <result column="SUM" property="sum" jdbcType="INTEGER" />
+  </resultMap>
+  
+  <select id="statisticByFault" resultMap="BaseMap">
+   	select FAULT_TYPE as faultType,count(FAULT_TYPE) as sum from TD_ORDER_TT10086_INFO group by FAULT_TYPE
+  </select>
+</mapper>

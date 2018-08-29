@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.tiankui.reactService.mapper.UserSettingsMapper" >
+
+	<resultMap type="com.tiankui.reactService.entity.UserSettings" id="BaseMap">
+		<result column="id" property="id" jdbcType="VARCHAR" />
+		<result column="userId" property="userId" jdbcType="VARCHAR" />
+		<result column="name" property="name" jdbcType="VARCHAR" />
+		<result column="value" property="value" jdbcType="VARCHAR" />
+	</resultMap>
+	
+	<sql id="BaseSql">
+		id,userId,name,value
+	</sql>
+	
+	<select id="getUserSettings" parameterType="java.lang.String" resultMap="BaseMap">
+	  	select <include refid="BaseSql"/> from user_settings where userId = #{userId}
+	</select>
+	
+	<update id="updateSetting" parameterType="java.util.Map" >
+		update user_settings set value = #{value} where userId = #{userId} and name = #{name}
+	</update>
+</mapper>

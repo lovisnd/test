@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.tiankui.reactService.mapper.TMenuMapper" >
+  <resultMap id="BaseResultMap" type="com.tiankui.reactService.entity.TMenu" >
+    <id column="id" property="id" jdbcType="VARCHAR" />
+    <result column="name" property="name" jdbcType="VARCHAR" />
+    <result column="parentId" property="parentId" jdbcType="VARCHAR" />
+    <result column="code" property="code" jdbcType="VARCHAR" />
+    <result column="url" property="url" jdbcType="VARCHAR" />
+    <result column="icon" property="icon" jdbcType="VARCHAR" />
+    <result column="description" property="description" jdbcType="VARCHAR" />
+    <result column="sort" property="sort" jdbcType="INTEGER" />
+    <result column="isShow" property="show" jdbcType="INTEGER" />
+    <result column="deleted" property="deleted" jdbcType="INTEGER" />
+    <result column="createTime" property="createtime" jdbcType="BIGINT" />
+    <result column="updateTime" property="updatetime" jdbcType="BIGINT" />
+  </resultMap>
+  <sql id="Example_Where_Clause" >
+    <where >
+      <foreach collection="oredCriteria" item="criteria" separator="or" >
+        <if test="criteria.valid" >
+          <trim prefix="(" suffix=")" prefixOverrides="and" >
+            <foreach collection="criteria.criteria" item="criterion" >
+              <choose >
+                <when test="criterion.noValue" >
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue" >
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue" >
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue" >
+                  and ${criterion.condition}
+                  <foreach collection="criterion.value" item="listItem" open="(" close=")" separator="," >
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Update_By_Example_Where_Clause" >
+    <where >
+      <foreach collection="example.oredCriteria" item="criteria" separator="or" >
+        <if test="criteria.valid" >
+          <trim prefix="(" suffix=")" prefixOverrides="and" >
+            <foreach collection="criteria.criteria" item="criterion" >
+              <choose >
+                <when test="criterion.noValue" >
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue" >
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue" >
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue" >
+                  and ${criterion.condition}
+                  <foreach collection="criterion.value" item="listItem" open="(" close=")" separator="," >
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Base_Column_List" >
+    id, name, parentId, code, url, icon, description, sort, isShow, deleted, createTime, 
+    updateTime
+  </sql>
+  <select id="selectByExample" resultMap="BaseResultMap" parameterType="com.tiankui.reactService.entity.TMenuExample" >
+    select
+    <if test="distinct" >
+      distinct
+    </if>
+    <include refid="Base_Column_List" />
+    from t_menu
+    <if test="_parameter != null" >
+      <include refid="Example_Where_Clause" />
+    </if>
+    <if test="orderByClause != null" >
+      order by ${orderByClause}
+    </if>
+  </select>
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.String" >
+    select 
+    <include refid="Base_Column_List" />
+    from t_menu
+    where id = #{id,jdbcType=VARCHAR}
+  </select>
+  
+  <select id="getMenuByExample" resultMap="BaseResultMap" parameterType="java.util.Map">
+  	select 
+  	<include refid="Base_Column_List"/>
+  	from t_menu
+  	<where>
+  		<if test="parentId != null and parentId != ''">
+  			parentId = #{parentId}
+  		</if>
+  		<if test="parentId == ''">
+  			parentId = ''
+  		</if>
+  			and sort = #{sort}
+  	</where>
+  </select>
+  
+  <update id="updateMenuSort" parameterType="com.tiankui.reactService.entity.TMenu">
+  	update t_menu set sort = #{sort} where id = #{id}
+  </update>
+  
+  <update id="updateMenu" parameterType="java.util.Map">
+  	update 
+  	t_menu set name = #{name},icon = #{icon},code = #{code},description = #{description},isShow=#{show},
+  	parentId = #{parentId},url = #{url} where id = #{id}
+  </update>
+  
+  <select id="getSortByPrenId" parameterType="java.lang.String" resultType="java.lang.Integer">
+  	select max(sort) from t_menu where parentId = #{parentId}
+  </select>
+  
+  <insert id="insertMenu" parameterType="java.util.Map">
+  	insert into t_menu (id,name,icon,code,description,isShow,parentId,url,sort,createTime)
+  	values (#{id},#{name},#{icon},#{code},#{description},#{show},#{parentId},#{url},#{sort},#{createTime})
+  </insert>
+  
+  <delete id="delMenu" parameterType="java.lang.String">
+  	delete from t_menu where id = #{id}
+  </delete>
+</mapper>

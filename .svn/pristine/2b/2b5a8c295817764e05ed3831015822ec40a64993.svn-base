@@ -1,0 +1,29 @@
+package com.tiankui.reactService.mapper;
+
+import java.util.List;
+import java.util.Map;
+
+import com.tiankui.reactService.entity.Dict;
+import com.tiankui.reactService.entity.DictExample;
+import com.tiankui.reactService.entity.DictGroup;
+import com.tiankui.reactService.entity.TableInfo;
+
+public interface DictMapper {
+
+	List<TableInfo> getListByTableName(String tableName);
+
+	List<TableInfo> getTabs();
+
+	List<DictGroup> selectByExample(DictExample dictExample);
+
+	List<Dict> selectByGroupId(String id);
+
+	DictGroup selectByPrimaryKey(String id);
+
+	int updateDept(Map<String, Object> map);
+
+	int insertDictGroup(Map<String, Object> map);
+
+	int delDept(String id);
+
+}

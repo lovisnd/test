@@ -1,0 +1,123 @@
+package com.tiankui.reactService.service.impl;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.tiankui.reactService.entity.TSyslog;
+import com.tiankui.reactService.entity.User;
+import com.tiankui.reactService.enums.LogType;
+import com.tiankui.reactService.mapper.TSyslogMapper;
+import com.tiankui.reactService.mapper.UserMapper;
+import com.tiankui.reactService.service.ISyslogService;
+import com.tiankui.reactService.util.ObjectUtil;
+
+@Service
+public class SyslogService implements ISyslogService {
+
+	@Autowired
+	private TSyslogMapper syslogMapper;
+	@Autowired
+	private UserMapper userMapper;
+	
+	@Override
+	public List<TSyslog> getAllLog(Map<String,Object> map) {
+		if (ObjectUtil.isNotNull(map.get("keywords"))) {
+			map.put("keywords", "%"+map.get("keywords")+"%");
+		}
+		if (ObjectUtil.isNotNull(map.get("userName"))) {
+			map.put("userName", "%"+map.get("userName")+"%");
+		}
+		if (ObjectUtil.isNotNull(map.get("address"))) {
+			map.put("address", "%"+map.get("address")+"%");
+		}
+		int start = Integer.valueOf(map.get("start").toString());
+		int limit = Integer.valueOf(map.get("limit").toString());
+		map.put("start", start + 1);
+		map.put("limit", limit + start);
+		List<TSyslog> list = syslogMapper.selectByExample(map);
+		for (TSyslog tSyslog : list) {
+			User user = userMapper.getUserById(tSyslog.getUserId());
+			tSyslog.setUserName(ObjectUtil.isNull(user) ? "操作人不存在" : user.getName());
+		}
+		return list;
+	}
+	
+	@Override
+	public List<Map<String,Object>> selectLogType(){
+		List<Map<String, Object>> resultList = new ArrayList<Map<String,Object>>();
+		List<Integer> list = syslogMapper.selectLogType();
+		for (Integer key : list) {
+			Map<String, Object> map = new HashMap<String, Object>();
+			map.put("key", key);
+			if (key == LogType.LOGIN_SUCCESS.getIndex()) {
+				map.put("name", LogType.LOGIN_SUCCESS.getName());
+			}
+			if (key == LogType.LOGIN_FAIL.getIndex()) {
+				map.put("name", LogType.LOGIN_FAIL.getName());
+			}
+			if (key == LogType.SYSTEM_ERROR.getIndex()) {
+				map.put("name", LogType.SYSTEM_ERROR.getName());
+			}
+			if (key == LogType.DATA_QUERY_SUCCESS.getIndex()) {
+				map.put("name", LogType.DATA_QUERY_SUCCESS.getName());
+			}
+			if (key == LogType.DATA_QUERY_FAIL.getIndex()) {
+				map.put("name", LogType.DATA_QUERY_FAIL.getName());
+			}
+			if (key == LogType.DATA_ADD_SUCCESS.getIndex()) {
+				map.put("name", LogType.DATA_ADD_SUCCESS.getName());
+			}
+			if (key == LogType.DATA_ADD_FAIL.getIndex()) {
+				map.put("name", LogType.DATA_ADD_FAIL.getName());
+			}
+			if (key == LogType.DATA_UPDATE_SUCCESS.getIndex()) {
+				map.put("name", LogType.DATA_UPDATE_SUCCESS.getName());
+			}
+			if (key == LogType.DATA_UPDATE_FAIL.getIndex()) {
+				map.put("name", LogType.DATA_UPDATE_FAIL.getName());
+			}
+			if (key == LogType.DATA_DELETE_SUCCESS.getIndex()) {
+				map.put("name", LogType.DATA_DELETE_SUCCESS.getName());
+			}
+			if (key == LogType.DATA_DELETE_FAIL.getIndex()) {
+				map.put("name", LogType.DATA_DELETE_FAIL.getName());
+			}
+			if (key == LogType.FILE_UPLOAD_SUCCESS.getIndex()) {
+				map.put("name", LogType.FILE_UPLOAD_SUCCESS.getName());
+			}
+			if (key == LogType.FILE_UPLOAD_FAIL.getIndex()) {
+				map.put("name", LogType.FILE_UPLOAD_FAIL.getName());
+			}
+			if (key == LogType.FILE_DOWNLOAD_SUCCESS.getIndex()) {
+				map.put("name", LogType.FILE_DOWNLOAD_SUCCESS.getName());
+			}
+			if (key == LogType.FILE_DOWNLOAD_FAIL.getIndex()) {
+				map.put("name", LogType.FILE_DOWNLOAD_FAIL.getName());
+			}
+			
+			resultList.add(map);
+		}
+		return resultList;
+	}
+
+	@Override
+	public int getCountLog(Map<String, Object> map) {
+		int count = syslogMapper.countByExample(map);
+		return count;
+	}
+
+	@Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+	@Override
+	public int insert(TSyslog log) {
+		return syslogMapper.insert(log);
+	}
+
+}

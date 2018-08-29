@@ -1,0 +1,181 @@
+package com.tiankui.reactService.controller;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.tiankui.reactService.entity.Result;
+import com.tiankui.reactService.entity.ResultArray;
+import com.tiankui.reactService.entity.Role;
+import com.tiankui.reactService.entity.TSyslog;
+import com.tiankui.reactService.entity.User;
+import com.tiankui.reactService.enums.LogLevel;
+import com.tiankui.reactService.enums.LogType;
+import com.tiankui.reactService.service.IRoleService;
+import com.tiankui.reactService.service.ISyslogService;
+import com.tiankui.reactService.util.ExcelUtils;
+import com.tiankui.reactService.util.IPUtil;
+import com.tiankui.reactService.util.ObjectUtil;
+
+@Controller
+@RequestMapping("/api/system/role")
+public class RoleController {
+
+	@Autowired
+	private IRoleService roleService;
+	@Autowired
+	public ISyslogService syslogService;
+
+	@ResponseBody
+	@RequestMapping(value = "/list")
+	public Result<List<Role>> getList(HttpServletRequest request, @RequestParam String token,
+			@RequestBody Map<String, Object> map) {
+		List<Role> list = roleService.getListByExample(map);
+		int count = roleService.getCountList(map);
+		Result<List<Role>> result = new Result<List<Role>>();
+		result.setData(list);
+		result.setCount(count);
+		result.setMessage("查询成功");
+		result.setStatus(1);
+		TSyslog tSyslog = new TSyslog(LogType.DATA_QUERY_SUCCESS.getIndex(), LogLevel.INFO.getIndex(), "角色列表数据查询成功！");
+		syslogService.insert(tSyslog, token, IPUtil.getIpAdrress(request));
+		return result;
+	}
+
+	@ResponseBody
+	@RequestMapping(value = "/add")
+	public Result<Integer> addRole(HttpServletRequest request, @RequestParam String token,
+			@RequestBody Map<String, Object> map) {
+		TSyslog tSyslog = new TSyslog();
+		Integer resultNum = roleService.addRole(map);
+		Result<Integer> result = new Result<Integer>();
+		if (resultNum == 1) {
+			result.setData(resultNum);
+			result.setMessage("添加成功");
+			result.setStatus(1);
+			tSyslog = new TSyslog(LogType.DATA_ADD_SUCCESS.getIndex(), LogLevel.INFO.getIndex(),
+					"添加角色数据成功！被添加角色名：" + map.get("name"));
+		} else {
+			result.setData(resultNum);
+			result.setMessage("添加失败");
+			result.setStatus(0);
+			tSyslog = new TSyslog(LogType.DATA_ADD_SUCCESS.getIndex(), LogLevel.INFO.getIndex(),
+					"添加角色数据成功！被添加角色名：" + map.get("name"));
+		}
+		syslogService.insert(tSyslog, token, IPUtil.getIpAdrress(request));
+		return result;
+	}
+
+	@ResponseBody
+	@RequestMapping(value = "/query")
+	public ResultArray<Role> getRoleById(@RequestParam String id) {
+		Role resultRole = roleService.getRoleById(id);
+		ResultArray<Role> result = new ResultArray<Role>();
+		result.setMessage("查询成功！");
+		if (ObjectUtil.isNotNull(resultRole)) {
+			Role[] users = { resultRole };
+			result.setData(users);
+			result.setStatus(1);
+		} else {
+			result.setData(null);
+			result.setStatus(0);
+		}
+		return result;
+	}
+
+	@ResponseBody
+	@RequestMapping(value = "/edit")
+	public Result<Integer> editRole(HttpServletRequest request, @RequestParam String token, @RequestParam String id,
+			@RequestBody Map<String, Object> map) {
+		TSyslog tSyslog = new TSyslog();
+		int resultNum = roleService.modifyRole(id, map);
+		Result<Integer> result = new Result<Integer>();
+		if (resultNum == 1) {
+			result.setData(resultNum);
+			result.setStatus(1);
+			result.setMessage("修改成功！");
+			tSyslog = new TSyslog(LogType.DATA_UPDATE_SUCCESS.getIndex(), LogLevel.INFO.getIndex(),
+					"修改角色数据成功！被修改的角色：" + roleService.getRoleById(id).getName());
+		} else {
+			result.setData(resultNum);
+			result.setStatus(0);
+			result.setMessage("修改失败！");
+			tSyslog = new TSyslog(LogType.DATA_UPDATE_FAIL.getIndex(), LogLevel.ERROR.getIndex(),
+					"修改角色数据失败！被修改的用户：" + roleService.getRoleById(id).getName());
+		}
+		syslogService.insert(tSyslog, token, IPUtil.getIpAdrress(request));
+		return result;
+	}
+
+	@ResponseBody
+	@RequestMapping(value = "/del")
+	public Result<Integer> delRole(HttpServletRequest request, @RequestParam String token, @RequestParam String id) {
+		TSyslog tSyslog = new TSyslog();
+		Role delRole = roleService.getRoleById(id);
+		int resultNum = roleService.delRole(id);
+		Result<Integer> result = new Result<Integer>();
+		if (resultNum == 1) {
+			result.setData(resultNum);
+			result.setStatus(1);
+			result.setMessage("删除成功！");
+			tSyslog = new TSyslog(LogType.DATA_DELETE_SUCCESS.getIndex(), LogLevel.INFO.getIndex(),
+					"删除角色数据成功！被删除角色：" + delRole.getName());
+		} else {
+			result.setData(resultNum);
+			result.setStatus(0);
+			result.setMessage("删除失败！");
+			tSyslog = new TSyslog(LogType.DATA_DELETE_FAIL.getIndex(), LogLevel.ERROR.getIndex(),
+					"删除角色数据失败！被删除角色名：" + delRole.getName());
+		}
+		syslogService.insert(tSyslog, token, IPUtil.getIpAdrress(request));
+		return result;
+	}
+
+	/**
+	 * 
+	 * @Title: queryUser @Description: TODO 查询角色下的所有用户 @param @param
+	 *         id @param @return 参数 @return Result<List<User>> 返回类型 @throws
+	 */
+	@ResponseBody
+	@RequestMapping(value = "/queryUser")
+	public Result<List<User>> queryUser(@RequestParam String id) {
+		List<User> list = roleService.queryUserByRoleId(id);
+		Result<List<User>> result = new Result<List<User>>();
+		result.setData(list);
+		result.setStatus(1);
+		result.setMessage("查询成功！");
+		return result;
+	}
+	
+	  @ResponseBody
+		@RequestMapping(value = "/export")
+		public void export(@RequestParam Map<String,Object> map,HttpServletRequest request,HttpServletResponse response){
+			String[] excelHeader = { "角色名", "角色编码", "描述", "创建时间"};
+			String[] ds_titles = {"name", "code", "description", "createTime"};  
+			int[] ds_format = { 1, 1, 1, 7};
+			int[] widths = {256*12, 256*12, 256*20, 256*20};
+			List<Map<String, Object>> mapList = new ArrayList<Map<String, Object>>();
+			List<Role> list = roleService.getExportList(map);
+			for (Role user : list) {
+				Map<String, Object> toMap = ObjectUtil.objectToMap(user);
+				toMap.put("createTime", user.getCreateTime().getTime());
+				mapList.add(toMap);
+			}
+			try {
+				ExcelUtils.export("角色表", "角色", excelHeader, ds_titles, ds_format, widths, mapList, request, response);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+}

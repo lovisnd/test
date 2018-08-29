@@ -1,0 +1,72 @@
+package com.tiankui.reactService.service.impl;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.tiankui.reactService.entity.TSyslog;
+import com.tiankui.reactService.entity.User;
+import com.tiankui.reactService.enums.LogType;
+import com.tiankui.reactService.mapper.TSyslogMapper;
+import com.tiankui.reactService.mapper.UserMapper;
+import com.tiankui.reactService.service.ISyslogService;
+import com.tiankui.reactService.util.ObjectUtil;
+
+@Service
+public class SyslogService implements ISyslogService {
+
+	@Autowired
+	private TSyslogMapper syslogMapper;
+	@Autowired
+	private UserMapper userMapper;
+	
+	@Override
+	public List<TSyslog> getAllLog(Map<String,Object> map) {
+		if (ObjectUtil.isNotNull(map.get("keywords"))) {
+			map.put("keywords", "%"+map.get("keywords")+"%");
+		}
+		map.put("startIndex", Integer.valueOf(map.get("start").toString()));
+		map.put("pageSize",Integer.valueOf(map.get("limit").toString()));
+		List<TSyslog> list = syslogMapper.selectByExample(map);
+		for (TSyslog tSyslog : list) {
+			User user = userMapper.getUserById(tSyslog.getUserId());
+			tSyslog.setUserName(ObjectUtil.isNull(user) ? tSyslog.getUserId() : user.getName());
+		}
+		return list;
+	}
+	
+	@Override
+	public List<Map<String,Object>> selectLogType(){
+		List<Map<String, Object>> resultList = new ArrayList<Map<String,Object>>();
+		List<Integer> list = syslogMapper.selectLogType();
+		for (Integer key : list) {
+			Map<String, Object> map = new HashMap<String, Object>();
+			map.put("key", key);
+			if (key == LogType.LOGIN_SUCCESS.getIndex()) {
+				map.put("name", LogType.LOGIN_SUCCESS.getName());
+			}
+			if (key == LogType.LOGIN_FAIL.getIndex()) {
+				map.put("name", LogType.LOGIN_FAIL.getName());
+			}
+			if (key == LogType.SYSTEM_ERROR.getIndex()) {
+				map.put("name", LogType.SYSTEM_ERROR.getName());
+			}
+			if (key == LogType.DATA_SEARCH.getIndex()) {
+				map.put("name", LogType.DATA_SEARCH.getName());
+			}
+			resultList.add(map);
+		}
+		return resultList;
+	}
+
+	@Override
+	public int getCountLog(Map<String, Object> map) {
+		int count = syslogMapper.countByExample(map);
+		return count;
+	}
+
+}

@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.tiankui.reactService.mapper.GuestInfoMapper">
+	<resultMap id="BaseResultMap" type="com.tiankui.reactService.entity.GuestInfo">
+		<id column="id" property="id" jdbcType="VARCHAR" />
+		<result column="guestNo" property="guestNo" jdbcType="VARCHAR" />
+		<result column="guestName" property="guestName" jdbcType="VARCHAR" />
+		<result column="guestAddress" property="guestAddress" jdbcType="VARCHAR" />
+		<result column="guestLevel" property="guestLevel" jdbcType="VARCHAR" />
+		<result column="guestServiceLevel" property="guestServiceLevel"
+			jdbcType="VARCHAR" />
+		<result column="country" property="country" jdbcType="VARCHAR" />
+		<result column="province" property="province" jdbcType="VARCHAR" />
+		<result column="city" property="city" jdbcType="VARCHAR" />
+		<result column="area" property="area" jdbcType="VARCHAR" />
+		<result column="guestManage" property="guestManage" jdbcType="VARCHAR" />
+		<result column="guestManagePhone" property="guestManagePhone"
+			jdbcType="VARCHAR" />
+		<result column="guestManageEmail" property="guestManageEmail"
+			jdbcType="VARCHAR" />
+		<result column="createTime" property="createTime" jdbcType="BIGINT" />
+		<result column="creater" property="creater" jdbcType="VARCHAR" />
+	</resultMap>
+
+	<sql id="Base_Column_List">
+		ID, GUESTNO, GUESTNAME, GUESTADDRESS, GUESTLEVEL, GUESTSERVICELEVEL,
+		COUNTRY, PROVINCE, CITY, AREA, GUESTMANAGE, GUESTMANAGEPHONE,
+		GUESTMANAGEEMAIL, CREATETIME, CREATER
+	</sql>
+
+	<select id="getListByMap" resultMap="BaseResultMap"
+		parameterType="java.util.Map">
+		SELECT * FROM(SELECT A.*, ROWNUM RN
+		FROM (
+		select
+		<include refid="Base_Column_List" />
+		from td_guest_info
+		<where>
+			<if test="guestNo != null and guestNo != ''">
+				GUESTNO like #{guestNo}
+			</if>
+			<if test="guestName != null and guestName != ''">
+				and GUESTNAME like #{guestName}
+			</if>
+			<if test="guestAddress != null and guestAddress != ''">
+				and GUESTADDRESS like #{guestAddress}
+			</if>
+			<if test="area != null and area != ''">
+				and AREA = #{area}
+			</if>
+		</where> order by CREATETIME desc) A)
+		WHERE RN BETWEEN #{start} AND #{limit}
+	</select>
+
+	<insert id="save" parameterType="com.tiankui.reactService.entity.GuestInfo">
+		insert into td_guest_info (
+		<include refid="Base_Column_List" />
+		)
+		values
+		(#{id},#{guestNo},#{guestName},#{guestAddress},#{guestLevel},#{guestServiceLevel},#{country},#{province},#{city},#{area},#{guestManage},#{guestManagePhone},#{guestManageEmail},#{createTime},#{creater})
+	</insert>
+
+	<select id="getAreas" resultType="java.lang.String">
+		select distinct(area) from td_guest_info
+	</select>
+
+	<delete id="detele" parameterType="java.lang.String">
+		delete from td_guest_info where id = #{id}
+	</delete>
+
+	<select id="getGuestInfoById" parameterType="java.lang.String"
+		resultMap="BaseResultMap">
+		select
+		<include refid="Base_Column_List" />
+		from td_guest_info where id = #{id}
+	</select>
+
+	<update id="update" parameterType="java.util.Map">
+		update td_guest_info set GUESTNAME = #{guestName}, GUESTADDRESS =
+		#{guestAddress}, GUESTLEVEL = #{guestLevel}, GUESTSERVICELEVEL =
+		#{guestServiceLevel},
+		AREA = #{area}, GUESTMANAGE = #{guestManage}, GUESTMANAGEPHONE =
+		#{guestManagePhone}, GUESTMANAGEEMAIL = #{guestManageEmail} where ID =
+		#{id}
+	</update>
+
+	<select id="getGuestNo" parameterType="java.lang.String"
+		resultType="java.lang.Integer">
+		select count(*) from TD_GUEST_INFO 
+		<where>
+			<if test="guestNo != null and guestNo != ''">
+				GUESTNO = #{guestNo}
+			</if>
+		</where>
+	</select>
+
+	<insert id="insertByBatch" parameterType="java.util.List">
+		insert into td_guest_info (
+		<include refid="Base_Column_List" />
+		)
+		<foreach collection="list" item="item" index="index"
+			separator="UNION ALL">
+			SELECT
+			#{item.id},#{item.guestNo},#{item.guestName},
+			#{item.guestAddress},#{item.guestLevel},
+			#{item.guestServiceLevel},#{item.country},
+			#{item.province},#{item.city},#{item.area},
+			#{item.guestManage},#{item.guestManagePhone},
+			#{item.guestManageEmail},#{item.createTime},#{item.creater}
+			FROM dual
+		</foreach>
+	</insert>
+
+	<select id="getGuestInfoByNo" parameterType="java.lang.String"
+		resultMap="BaseResultMap">
+		select
+		<include refid="Base_Column_List" />
+		from td_guest_info where GUESTNO = #{guestNo}
+	</select>
+
+	<update id="updateBatch" parameterType="java.util.List">
+		<foreach collection="list" item="item" index="index" open="begin"
+				 close=";end;" separator=";">
+			update td_guest_info
+			<set>
+			GUESTNAME = #{item.guestName}, GUESTADDRESS = #{item.guestAddress}, GUESTLEVEL =
+			#{item.guestLevel}, GUESTSERVICELEVEL = #{item.guestServiceLevel},
+			AREA = #{item.area}, GUESTMANAGE = #{item.guestManage}, GUESTMANAGEPHONE =
+			#{item.guestManagePhone}, GUESTMANAGEEMAIL = #{item.guestManageEmail} 
+			</set>
+			where GUESTNO = #{item.guestNo}
+		</foreach>
+	</update>
+	
+	<select id="getCountListByMap" parameterType="java.util.Map"
+		resultType="java.lang.Integer">
+		select
+		count(*)
+		from td_guest_info
+		<where>
+			<if test="guestNo != null and guestNo != ''">
+				GUESTNO like #{guestNo}
+			</if>
+			<if test="guestName != null and guestName != ''">
+				and GUESTNAME like #{guestName}
+			</if>
+			<if test="guestAddress != null and guestAddress != ''">
+				and GUESTADDRESS like #{guestAddress}
+			</if>
+			<if test="area != null and area != ''">
+				and AREA = #{area}
+			</if>
+		</where>
+	</select>
+
+	<select id="getList" resultMap="BaseResultMap"
+			parameterType="java.util.Map">
+		select
+		<include refid="Base_Column_List" />
+		from td_guest_info
+		<where>
+			<if test="guestNo != null and guestNo != ''">
+				GUESTNO like #{guestNo}
+			</if>
+			<if test="guestName != null and guestName != ''">
+				and GUESTNAME like #{guestName}
+			</if>
+			<if test="guestAddress != null and guestAddress != ''">
+				and GUESTADDRESS like #{guestAddress}
+			</if>
+			<if test="area != null and area != ''">
+				and AREA = #{area}
+			</if>
+		</where> order by CREATETIME desc
+	</select>
+</mapper>

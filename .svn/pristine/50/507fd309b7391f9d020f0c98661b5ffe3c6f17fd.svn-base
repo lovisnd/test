@@ -1,0 +1,25 @@
+package com.tiankui.reactService.service;
+
+import java.util.HashMap;
+
+/**
+ * 家庭客户工单统计分析
+ * @ClassName: IHWStatisticService
+ * @Description: TODO(这里用一句话描述这个类的作用)
+ * @author zhouao
+ * @date 2018年8月13日
+ *
+ */
+public interface IHWStatisticService {
+
+	/**
+	 * 按工单故障类型统计
+	 * @Title: getFaultType
+	 * @Description: TODO(这里用一句话描述这个方法的作用)
+	 * @param @return    参数
+	 * @return List<Map<String,Object>>    返回类型
+	 * @throws
+	 */
+	HashMap<String,Object> getFaultType();
+
+}

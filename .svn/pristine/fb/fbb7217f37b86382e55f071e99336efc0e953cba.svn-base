@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.tiankui.reactService.mapper.RightMapper" >
+  <resultMap id="BaseResultMap" type="com.tiankui.reactService.entity.Right" >
+    <id column="id" property="id" jdbcType="VARCHAR" />
+    <result column="menuId" property="menuId" jdbcType="VARCHAR" />
+    <result column="type" property="type" jdbcType="INTEGER" />
+    <result column="name" property="name" jdbcType="VARCHAR" />
+    <result column="code" property="code" jdbcType="VARCHAR" />
+    <result column="description" property="description" jdbcType="VARCHAR" />
+    <result column="deleted" property="deleted" jdbcType="INTEGER" />
+    <result column="createTime" property="createTime" jdbcType="BIGINT" />
+    <result column="updateTime" property="updateTime" jdbcType="BIGINT" />
+  </resultMap>
+  
+  <sql id="Base_Column_List">
+  	id, menuId, type, name, code, description, deleted, createTime, updateTime
+  </sql>
+ 
+  <select id="selectByExample" resultMap="BaseResultMap" parameterType="java.util.Map" >
+    select <include refid="Base_Column_List" />
+    from t_right
+    <where>
+    	<if test="menuId != null and menuId != ''">
+    		menuId = #{menuId}
+    	</if>
+    </where>
+  </select>
+  
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.String" >
+    select 
+    <include refid="Base_Column_List" />
+    from t_right
+    where id = #{id,jdbcType=VARCHAR}
+  </select>
+  <select id="countByExample" resultType="java.lang.Integer" parameterType="java.util.Map">
+    select count(*) from t_right
+  </select>
+</mapper>

@@ -1,0 +1,235 @@
+package com.tiankui.reactService.controller;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.ibatis.annotations.Param;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.alibaba.fastjson.JSONObject;
+import com.tiankui.reactService.entity.GuestInfo;
+import com.tiankui.reactService.entity.JkWorkOrder;
+import com.tiankui.reactService.entity.Result;
+import com.tiankui.reactService.entity.ResultArray;
+import com.tiankui.reactService.entity.WorkOrder;
+import com.tiankui.reactService.service.IJkWorkOrderService;
+import com.tiankui.reactService.util.ExcelUtils;
+import com.tiankui.reactService.util.ObjectUtil;
+
+/**
+ * @author zhangmingrui
+ * @ClassName: JkWorkOrderController
+ * @Description: TODO 集客工单处理接入层
+ * @date 2018年8月06日
+ */
+@RestController
+@RequestMapping("/api/jkworkOrder")
+public class JkWorkOrderController {
+	
+	
+	@Autowired
+	private IJkWorkOrderService jkworkOrderService;
+   
+    /**
+     * @Title: list @Description: TODO 获取集客工单信息列表 @param map 参数 @return
+     * Result<List<WorkOrder>> 返回类型 @throws
+     */
+    @RequestMapping(value = "/list")
+    public Result<List<JkWorkOrder>> list(@RequestBody Map<String, Object> map) {
+        Result<List<JkWorkOrder>> result = new Result<List<JkWorkOrder>>();
+        List<JkWorkOrder> list = jkworkOrderService.getListByMap(map);
+        int count = jkworkOrderService.getCountList(map);
+        result.setData(list);
+        result.setCount(count);
+        result.setStatus(1);
+        result.setMessage("查询成功！");
+        return result;
+    }
+    /**
+     * @Title: sug @Description: TODO 获取集团客户名称列表 @param map 参数 @return
+     * String 返回类型 @throws
+     */
+    @RequestMapping(value = "/sug",produces = {"application/text;charset=UTF-8"})
+    public String list(HttpServletRequest request,HttpServletResponse response) throws UnsupportedEncodingException {
+    	//响应到前台为utf-8
+    	request.setCharacterEncoding("utf-8");  
+    	response.setContentType("text/html;charset=utf-8");
+    	ArrayList<Object> resultAll =new ArrayList<Object>();
+        String callback = request.getParameter("callback");
+        String cliqueName = request.getParameter("cliqueName");
+        List<GuestInfo> list = jkworkOrderService.getCliqueNameByName(cliqueName);
+        for (GuestInfo guestInfo : list) {
+            ArrayList<Object> res =new ArrayList<Object>();
+            res.add(guestInfo.getGuestName());
+            res.add(guestInfo.getGuestNo());
+            res.add(guestInfo.getGuestAddress());
+            res.add(guestInfo.getArea());
+            resultAll.add(res);
+		}
+        // 经过该接口一系列操作，然后得到data，将data返回给调用者
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("result", resultAll);
+        String jsonString = JSONObject.toJSONString(map);
+        return callback + "("+jsonString+")";
+    }
+
+    /**
+    *
+    * @param map
+    * @param token
+    * @return
+    */
+   @RequestMapping(value = "/add")
+   public Result<Integer> addJkInfo(@RequestBody Map<String,Object> map,@RequestParam String token){
+       Result<Integer> result = new Result<Integer>();
+       System.out.println(token);
+       map.put("token", token);
+       int resultNum = jkworkOrderService.addJkWorkOrder(map);
+       result.setData(resultNum);
+       if (resultNum == 1) {
+           result.setStatus(1);
+           result.setMessage("添加成功！");
+       }
+       return result;
+   }
+   
+   
+   /**
+    * 根据工单号查询工单信息
+    * @param id
+    * @return
+    */
+   @RequestMapping(value = "/jkOrderNo")
+   public Result<Integer> getOrderNo(@RequestParam String id){
+       int num = jkworkOrderService.getJkOrderNo(id);
+       Result<Integer> result = new Result<Integer>();
+       result.setData(num);
+       result.setStatus(1);
+       result.setMessage("查询成功！");
+       return result;
+   }
+   
+   /**
+    * @param @param  id
+    * @param @return 参数
+    * @return ResultArray<User>    返回类型
+    * @throws
+    * @Title: getGuestInfoById
+    * @Description: TODO 根据ID查询客户信息
+    */
+   @RequestMapping(value = "/queryDetail")
+   public Result<Map<String, Object>> getOrderById(@RequestParam String id) {
+       Map<String, Object> orderMap = jkworkOrderService.getJkWorkOrderById(id);
+       Result<Map<String, Object>> result = new Result<Map<String, Object>>();
+       result.setMessage("查询成功！");
+       if (ObjectUtil.isNotNull(orderMap)) {
+           result.setData(orderMap);
+           result.setStatus(1);
+       } else {
+           result.setData(null);
+           result.setStatus(0);
+       }
+       return result;
+   }
+   
+   /**
+    * @param @param  id
+    * @param @return 参数
+    * @return ResultArray<User>    返回类型
+    * @throws
+    * @Title: getGuestInfoById
+    * @Description: TODO 根据ID查询客户信息
+    */
+   @RequestMapping(value = "/query")
+   public ResultArray<JkWorkOrder> getWorkOrderById(@RequestParam String id) {
+	   JkWorkOrder order = jkworkOrderService.getOrderById(id);
+       ResultArray<JkWorkOrder> result = new ResultArray<JkWorkOrder>();
+       result.setMessage("查询成功！");
+       if (ObjectUtil.isNotNull(order)) {
+    	   JkWorkOrder[] jkworkOrders = {order};
+           result.setData(jkworkOrders);
+           result.setStatus(1);
+       } else {
+           result.setData(null);
+           result.setStatus(0);
+       }
+       return result;
+   }
+   
+   @RequestMapping(value = "/edit")
+   public Result<Integer> editJkWorkOrderInfo(@RequestParam String id, @RequestBody Map<String, Object> map){
+       int resultNum = jkworkOrderService.updateJkWorkOrder(id,map);
+       Result<Integer> result = new Result<Integer>();
+       if (resultNum == 1) {
+           result.setData(resultNum);
+           result.setStatus(1);
+           result.setMessage("修改成功！");
+       }else{
+           result.setData(resultNum);
+           result.setStatus(0);
+           result.setMessage("修改失败！");
+       }
+       return result;
+   }
+   /**
+    * 查询工单状态
+    * @param id
+    * @return
+    */
+   
+   @RequestMapping(value = "/queryState")
+   public ResultArray<JkWorkOrder> getOrderState(@RequestParam String id) {
+	   JkWorkOrder order = jkworkOrderService.getOrderById(id);
+       ResultArray<JkWorkOrder> result = new ResultArray<JkWorkOrder>();
+       Integer orderState = order.getOrderState();
+       if (orderState==2) {
+    	   JkWorkOrder[] jkworkOrders = {order};
+           result.setData(jkworkOrders);
+           result.setStatus(1);
+           result.setMessage("查询成功！");
+       } else if(orderState==3){
+           result.setData(null);
+           result.setStatus(0);
+           result.setMessage("工单已归档，请勿重新归档");
+       } else if(orderState==1){
+           result.setData(null);
+           result.setStatus(0);
+           result.setMessage("工单还未回单，暂时不能归档");
+       }
+       return result;
+   }
+   
+   
+   /**
+    * 导出工单信息
+    *
+    * @param map
+    * @param request
+    * @param response
+    */
+   @RequestMapping(value = "/export")
+   public void export(@RequestParam Map<String, Object> map, HttpServletRequest request,
+                      HttpServletResponse response) {
+       String[] excelHeader = {"工单编号", "工单类型", "投诉号码", "客户名称", "集团名称", "集团编号" , "集团地址", "客户所在城市", "客户所在区县", "投诉内容", "工单创建时间", "装维人员接单时间", "投诉是否解决", "工单处理人-装维人员", "故障类型", "装维人员处理时长/min", "是否处理超时","是否转发给光纤组", "转发后的装维人员","转发后接单时间","派发给的装维人员", "工单状态", "外呼方式", "用户满意情况", "创建时间", "创建人"};
+       String[] ds_titles = {"jkOrderNo", "orderState", "phoneNo", "guestName","cliqueName","cliqueNo", "cliqueAddress", "city", "area", "complainContent", "createDate", "takeOrderDate", "isSuccess", "orderHandler", "faultType", "handleMin", "isTimeout","isTranspond", "transpondPerson","transpondTakeOrderDate","distributePerson", "orderState", "callOutWay", "isSatisfaction", "createDate", "creater"};
+       int[] ds_format = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 7, 7, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,7,1};
+       int[] widths = {256 * 30, 256 * 10, 256 * 15, 256 * 45, 256 * 45, 256 * 25, 256 * 45, 256 * 15, 256 * 15, 256 * 50, 256 * 20, 256 * 20, 256 * 25, 256 * 20, 256 * 45, 256 * 15, 256 * 28, 256 * 15, 256 * 15, 256 * 15, 256 * 15, 256 * 15, 256 * 20, 256 * 15, 256 * 20, 256 * 15};
+       List<Map<String, Object>> list = jkworkOrderService.getList(map);
+       try {
+           ExcelUtils.export("集客工单信息表", "工单信息", excelHeader, ds_titles, ds_format, widths, list, request, response);
+       } catch (IOException e) {
+           e.printStackTrace();
+       }
+   }
+}

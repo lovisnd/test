@@ -1,0 +1,85 @@
+package com.tiankui.reactService.timeTask;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+
+import com.tiankui.reactService.entity.JkWorkOrder;
+import com.tiankui.reactService.service.IJkWorkOrderService;
+import com.tiankui.reactService.service.IWorkOrderService;
+import com.tiankui.reactService.service.impl.WorkOrderService;
+import com.tiankui.reactService.util.ExcelUtils;
+import com.tiankui.reactService.util.ObjectUtil;
+
+public class ImportTask {
+
+	@Autowired
+	private IWorkOrderService workOrderService;
+
+	@Autowired
+	private IJkWorkOrderService jkworkOrderService;
+
+	private static Logger logger = Logger.getLogger(WorkOrderService.class);
+
+	@Value("#{prop.filePath}")
+	private String tieTongSrc;
+
+	/**
+	 * 定时导入铁通工单 @Title: importWorkOrder @Description:
+	 * TODO(这里用一句话描述这个方法的作用) @param 参数 @return void 返回类型 @throws
+	 */
+	public void importWorkOrder() {
+		FileInputStream fis = null;
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+		String format = sdf.format(new Date());
+		String fileSrc = tieTongSrc + "铁通工单" + format + ".xlsx";
+		File file = new File(fileSrc);
+		if (!file.exists()) {
+			logger.error(fileSrc + "文件不存在！");
+		} else {
+			try {
+				fis = new FileInputStream(file);
+				List<List<Object>> list = ExcelUtils.getBankListByExcel(fis, file.getName());
+				logger.error("铁通工单开始导入");
+				long currentTime = System.currentTimeMillis();
+				workOrderService.ttWorkOrderInsert(fileSrc, list);
+				long endTime = System.currentTimeMillis();
+				logger.error("用时【" + (endTime - currentTime) + "ms】");
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	/**
+	 * 集客工单定时归档 @Title: JKWorkOrderIsTimeOut @Description:
+	 * TODO(这里用一句话描述这个方法的作用) @param 参数 @return void 返回类型 @throws
+	 */
+	public void archiveJKWorkOrder() {
+		// 获取未归档的工单
+		List<JkWorkOrder> list = jkworkOrderService.getNotArchiveOrder();
+		List<JkWorkOrder> notArchiveList = new ArrayList<JkWorkOrder>();
+		// 判断工单是否>3天
+		for (JkWorkOrder jkWorkOrder : list) {
+			if (ObjectUtil.isNotNull(jkWorkOrder.getTakeOrderDate())) {
+				long ss = new Date().getTime() - jkWorkOrder.getTakeOrderDate();
+				if (259200000 <= ss && jkWorkOrder.getOrderState() == 2) {
+					notArchiveList.add(jkWorkOrder);
+				}
+			}
+		}
+		// 修改工单状态
+		if (notArchiveList.size() > 0) {
+			logger.error("自动归档开始，共" + notArchiveList.size() + "条记录！");
+			jkworkOrderService.archiveOrder(notArchiveList);
+			logger.error("自动归档结束");
+		}
+	}
+}

@@ -1,0 +1,83 @@
+package com.tiankui.reactService.service.impl;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.tiankui.reactService.entity.DictExample;
+import com.tiankui.reactService.entity.DictGroup;
+import com.tiankui.reactService.mapper.DictMapper;
+import com.tiankui.reactService.service.IDictService;
+import com.tiankui.reactService.util.UUIDUtil;
+
+@Service
+public class DictService implements IDictService {
+
+	@Autowired
+	private DictMapper dictMapper;
+	
+	@Override
+	public List<DictGroup> getTableInfo(Map<String, Object> map) {
+		int start = Integer.valueOf(map.get("start").toString());
+		int limit = Integer.valueOf(map.get("limit").toString());
+		map.put("start", start + 1);
+		map.put("limit", limit + start);
+		List<DictGroup> list = dictMapper.getListByTableName(map);
+		return list;
+	}
+	@Override
+	public List<String> getTabs() {
+		List<String> list = dictMapper.getTabs();
+		return list;
+	}
+	@Override
+	public List<DictGroup> getAll() {
+		DictExample dictExample = new DictExample();
+		dictExample.setOrderByClause("sort,createtime asc");
+		List<DictGroup> list = dictMapper.selectByExample(dictExample);
+		return list;
+	}
+	@Override
+	public DictGroup getDictGroup(String id) {
+		DictGroup dictGroup = dictMapper.selectByPrimaryKey(id);
+		return dictGroup;
+	}
+	
+	@Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+	@Override
+	public int addDictGroup(Map<String, Object> map) {
+		String uuid = UUIDUtil.getUUID();
+		map.put("id", uuid);		
+		map.put("createTime", new Date().getTime());
+		int result = dictMapper.insertDictGroup(map);
+		return result;
+	}
+	
+	@Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+	@Override
+	public int editDictGroup(String id, Map<String, Object> map) {
+		map.put("id", id);
+		long time = new Date().getTime();
+		map.put("createTime", time);
+		int result = dictMapper.updateDept(map);
+		return result;
+	}
+	
+	@Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+	@Override
+	public int delDictGroup(String id) {
+		int result = dictMapper.delDept(id);
+		return result;
+	}
+	@Override
+	public int getCount() {
+		return dictMapper.getCount();
+	}
+
+}

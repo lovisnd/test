@@ -1,0 +1,99 @@
+package com.tiankui.reactService.controller;
+
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.tiankui.reactService.entity.DictGroup;
+import com.tiankui.reactService.entity.Result;
+import com.tiankui.reactService.entity.ResultArray;
+import com.tiankui.reactService.service.IDictService;
+
+@Controller
+@RequestMapping(value = "/api/system/dict")
+public class DictController {
+	
+	@Autowired
+	private IDictService dictService;
+	
+	@ResponseBody
+	@RequestMapping( value = "/list")
+	public Result<List<DictGroup>> getList(@RequestParam String key){
+		List<DictGroup> list = dictService.getTableInfo(key);
+		Result<List<DictGroup>> result = new Result<List<DictGroup>>();
+		result.setData(list);
+		result.setStatus(1);
+		result.setMessage("查询成功！");
+		return result;
+	}
+	
+	@ResponseBody
+	@RequestMapping(value = "/query")
+	public ResultArray<DictGroup> sort(@RequestParam String id) {
+		DictGroup dictGroup = dictService.getDictGroup(id);
+		ResultArray<DictGroup> result = new ResultArray<DictGroup>();
+		DictGroup[] dicts = { dictGroup };
+		result.setStatus(1);
+		result.setMessage("查询成功");
+		result.setData(dicts);
+		return result;
+	}
+	
+	@ResponseBody
+	@RequestMapping(value = "/add")
+	public Result<Integer> addDictGroup(@RequestBody Map<String, Object> map) {
+		int resultNum = dictService.addDictGroup(map);
+		Result<Integer> result = new Result<Integer>();
+		if (resultNum == 1) {
+			result.setStatus(1);
+			result.setMessage("添加成功");
+			result.setData(resultNum);
+		} else {
+			result.setStatus(0);
+			result.setMessage("添加失败");
+			result.setData(resultNum);
+		}
+		return result;
+	}
+	
+	@ResponseBody
+	@RequestMapping(value = "/edit")
+	public Result<Integer> editDictGroup(@RequestParam String id, @RequestBody Map<String, Object> map) {
+		int resultNum = dictService.editDictGroup(id, map);
+		Result<Integer> result = new Result<Integer>();
+		if (resultNum == 1) {
+			result.setStatus(1);
+			result.setMessage("修改成功");
+			result.setData(resultNum);
+		} else {
+			result.setStatus(0);
+			result.setMessage("修改失败");
+			result.setData(resultNum);
+		}
+		return result;
+	}
+	
+	@ResponseBody
+	@RequestMapping(value = "/del")
+	public Result<Integer> delDept(@RequestParam String id) {
+		int resultNum = dictService.delDictGroup(id);
+		Result<Integer> result = new Result<Integer>();
+		if (resultNum == 1) {
+			result.setStatus(1);
+			result.setMessage("删除成功");
+			result.setData(resultNum);
+		} else {
+			result.setStatus(0);
+			result.setMessage("删除失败");
+			result.setData(resultNum);
+		}
+		return result;
+	}
+	
+}

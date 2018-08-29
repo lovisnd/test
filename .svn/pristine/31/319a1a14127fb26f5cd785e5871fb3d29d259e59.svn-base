@@ -1,0 +1,83 @@
+package com.tiankui.reactService.controller;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.tiankui.reactService.entity.DateOrder;
+import com.tiankui.reactService.entity.Result;
+import com.tiankui.reactService.entity.TSyslog;
+import com.tiankui.reactService.enums.LogLevel;
+import com.tiankui.reactService.enums.LogType;
+import com.tiankui.reactService.service.IJkWorkOrderService;
+import com.tiankui.reactService.service.IStatisticService;
+import com.tiankui.reactService.service.ISyslogService;
+import com.tiankui.reactService.util.IPUtil;
+/**
+ * @author zhangmingrui
+ * @ClassName: StatisticController
+ * @Description: TODO 集客工单数据分析接入层
+ * @date 2018年8月15日
+ */
+@Controller
+@RequestMapping(value = "/api/statistic")
+public class StatisticController {
+	
+	@Autowired
+	private IStatisticService statisticService;
+	@Autowired
+	private IJkWorkOrderService jkworkOrderService;
+	@Autowired
+	public ISyslogService syslogService;
+	
+	@ResponseBody
+	@RequestMapping(value = "/online")
+	public Map<String,Object> getOnline(){
+		Map<String,Object> result = new HashMap<String,Object>();
+		Map<String,Object> map = statisticService.getOnline();
+		result.put("pillarData", map.get("pillarData"));
+		result.put("cakeData", map.get("cakeData"));
+		result.put("status", 1);
+		result.put("message", "查询成功");
+		return result;
+	}
+	
+	@ResponseBody
+	@RequestMapping(value = "/deviceType")
+	public Map<String,Object> getDeviceType(){
+		Map<String,Object> result = new HashMap<String,Object>();
+		Map<String,Object> map = statisticService.getDeviceType();
+		result.put("deviceData", map.get("deviceData"));
+		result.put("deviceDescData", map.get("deviceDescData"));
+		result.put("status", 1);
+		result.put("message", "查询成功");
+		return result;
+	}
+	/**
+	 * 查询所有工单故障类型数量
+	 * @return
+	 */
+	@ResponseBody
+	@RequestMapping(value = "/QueryFaultType")
+	public  Result<List<DateOrder>> queryFaultType(HttpServletRequest request, @RequestParam String token,@RequestBody Map<String,Object> map){
+		  List<DateOrder> list = jkworkOrderService.queryFaultType(map);
+		   Result<List<DateOrder>> result = new Result<List<DateOrder>>();
+		   result.setData(list);
+	       result.setStatus(1);
+	       result.setMessage("查询成功！");
+	        TSyslog tSyslog = new TSyslog(LogType.DATA_QUERY_SUCCESS.getIndex(), LogLevel.INFO.getIndex(),
+					"故障列表数据查询成功！");
+	    	syslogService.insert(tSyslog,token,IPUtil.getIpAdrress(request));
+	       return result; 
+	}
+
+}

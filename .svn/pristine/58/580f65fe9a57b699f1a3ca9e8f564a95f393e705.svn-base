@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.tiankui.reactService.mapper.TSyslogMapper" >
+
+  <resultMap id="BaseResultMap" type="com.tiankui.reactService.entity.TSyslog" >
+    <id column="id" property="id" jdbcType="VARCHAR" />
+    <result column="logType" property="logType" jdbcType="VARCHAR" />
+    <result column="logLevel" property="logLevel" jdbcType="INTEGER" />
+    <result column="logContent" property="logContent" jdbcType="VARCHAR" />
+    <result column="logTime" property="logTime" jdbcType="TIMESTAMP" />
+    <result column="userId" property="userId" jdbcType="VARCHAR" />
+    <result column="userName" property="userName" jdbcType="VARCHAR" />
+    <result column="address" property="address" jdbcType="VARCHAR" />
+  </resultMap>
+  
+  <sql id="Base_Column_List" >
+    id, logType, logLevel, logContent, logTime, userId, address
+  </sql>
+  
+  <select id="selectByExample" resultMap="BaseResultMap" parameterType="java.util.Map" >
+    select ts.id, logType, logLevel, logContent, logTime, userId, address, name
+    from t_s_log ts left join t_s_user tu on ts.userId = tu.id 
+    <where>
+	    <if test = "logType != null and logType != ''">
+	    	and logType like #{logType}
+	    </if>
+	    <if test = "logLevel != null and logLevel != ''">
+	    	and logLevel like #{logLevel}
+	    </if>
+	    <if test = "userName != null and userName != ''">
+	    	and name like #{name}
+	    </if>
+	    <if test = "address != null and address != ''">
+	    	and address like #{address}
+	    </if>
+	    <if test = "keywords != null and keywords != ''">
+	    	and logContent like #{keywords}
+	    </if>
+	    <if test = "startTime != null and startTime != ''">
+	    	and logTime &gt;= to_date(#{startTime},'yyyy-mm-dd hh24:mi:ss')
+	    </if>
+	    <if test = "endTime != null and endTime != ''">
+	    	and logTime &lt; to_date(#{endTime},'yyyy-mm-dd hh24:mi:ss')
+	    </if>
+    </where> 
+    order by logTime desc
+  </select>
+  
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.String" >
+    select 
+    <include refid="Base_Column_List" />
+    from t_s_log
+    where id = #{id,jdbcType=VARCHAR}
+  </select>
+  
+  <insert id="insert" parameterType="com.tiankui.reactService.entity.TSyslog" >
+    insert into t_s_log (<include refid="Base_Column_List"/>)
+    values (#{id,jdbcType=VARCHAR}, #{logType,jdbcType=VARCHAR}, #{logLevel,jdbcType=INTEGER}, 
+      #{logContent,jdbcType=VARCHAR}, #{logTime,jdbcType=TIMESTAMP}, #{userId,jdbcType=VARCHAR}, 
+      #{address,jdbcType=VARCHAR})
+  </insert>
+  
+  <insert id="insertSelective" parameterType="com.tiankui.reactService.entity.TSyslog" >
+    insert into t_s_log
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        id,
+      </if>
+      <if test="logtype != null" >
+        logType,
+      </if>
+      <if test="loglevel != null" >
+        logLevel,
+      </if>
+      <if test="logcontent != null" >
+        logContent,
+      </if>
+      <if test="logtime != null" >
+        logTime,
+      </if>
+      <if test="userid != null" >
+        userId,
+      </if>
+      <if test="address != null" >
+        address,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        #{id,jdbcType=VARCHAR},
+      </if>
+      <if test="logtype != null" >
+        #{logtype,jdbcType=VARCHAR},
+      </if>
+      <if test="loglevel != null" >
+        #{loglevel,jdbcType=INTEGER},
+      </if>
+      <if test="logcontent != null" >
+        #{logcontent,jdbcType=VARCHAR},
+      </if>
+      <if test="logtime != null" >
+        #{logtime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="userid != null" >
+        #{userid,jdbcType=VARCHAR},
+      </if>
+      <if test="address != null" >
+        #{address,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  
+  <select id="countByExample" parameterType="java.util.Map" resultType="java.lang.Integer" >
+    select count(*) from t_s_log ts left join t_s_user tu on ts.userId = tu.id 
+    <where>
+	    <if test = "logType != null and logType != ''">
+	    	and logType like #{logType}
+	    </if>
+	    <if test = "logLevel != null and logLevel != ''">
+	    	and logLevel like #{logLevel}
+	    </if>
+	    <if test = "userName != null and userName != ''">
+	    	and name like #{name}
+	    </if>
+	    <if test = "address != null and address != ''">
+	    	and address like #{address}
+	    </if>
+	    <if test = "keywords != null and keywords != ''">
+	    	and logContent like #{keywords}
+	    </if>
+	    <if test = "startTime != null and startTime != ''">
+	    	and logTime &gt;= to_date(#{startTime},'yyyy-mm-dd hh24:mi:ss')
+	    </if>
+	    <if test = "endTime != null and endTime != ''">
+	    	and logTime &lt; to_date(#{endTime},'yyyy-mm-dd hh24:mi:ss')
+	    </if>
+    </where> 
+  </select>
+  
+  <select id="selectLogType" resultType="java.lang.Integer">
+  	select DISTINCT logType from t_s_log
+  </select>
+</mapper>

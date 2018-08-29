@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tiankui.reactService.mapper.RoleMapper">
+	<resultMap type="com.tiankui.reactService.entity.Role" id="BaseMap">
+		<result column="id" property="id" jdbcType="VARCHAR" />
+		<result column="name" property="name" jdbcType="VARCHAR" />
+		<result column="code" property="code" jdbcType="VARCHAR" />
+		<result column="description" property="description" jdbcType="VARCHAR" />
+		<result column="deleted" property="deleted" jdbcType="INTEGER" />
+		<result column="createTime" property="createTime" jdbcType="BIGINT" />
+		<result column="updateTime" property="updateTime" jdbcType="BIGINT" />
+	</resultMap>
+	
+	<sql id="BaseSql">
+		id,name,code,description,deleted,createTime,updateTime
+	</sql>
+	<select id="getListByExample" resultMap="BaseMap" parameterType="java.util.Map">
+		select
+		<include refid="BaseSql" />
+		from t_role
+		<where>
+			<if test="name != null and name != ''">
+				name like #{name}
+			</if>
+			<if test="deleted != null and deleted != ''">
+				deleted = #{deleted}
+			</if>
+		</where>
+	</select>
+
+	<select id="getListByUserId" resultMap="BaseMap" parameterType="java.util.Map">
+		select tr.id, name, code from t_role tr, user_role ur where tr.id = ur.roleId 
+		and ur.userId = #{userId}
+	</select>
+	
+	<select id="selectExampleById" resultMap="BaseMap" parameterType="java.lang.String">
+		select <include refid="BaseSql"/> 
+		from t_role where id = #{id}
+	</select>
+	
+	<update id="updateRole" parameterType="java.util.Map">
+		update t_role set name = #{name},code = #{code},description = #{description},updateTime = #{updateTime} where id = #{id} 
+	</update>
+	
+	<insert id="addRole" parameterType="java.util.Map">
+		insert into t_role(id,name,code,description,createTime,updateTime)
+		values(#{id},#{name},#{code},#{description},#{createTime},#{updateTime})
+	</insert>
+</mapper>

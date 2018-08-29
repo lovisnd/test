@@ -1,0 +1,43 @@
+package com.tiankui.reactService.controller;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.tiankui.reactService.entity.Result;
+import com.tiankui.reactService.service.ICheckService;
+@Controller
+@RequestMapping(value = "api/system/check")
+public class CheckController {
+
+	@Autowired
+	private ICheckService checkService;
+	
+	@ResponseBody
+	@RequestMapping(value = "/list")
+	public Result<List<Map<String,Object>>> getList(@RequestParam Map<String,Object> map){
+		Result<List<Map<String,Object>>> result = new Result<List<Map<String,Object>>>();
+		List<Map<String,Object>> list = checkService.getListByMap(map);
+		result.setData(list);
+		result.setCount(list.size());
+		result.setMessage("查询成功！");
+		result.setStatus(1);
+		return result;
+	}	
+	@ResponseBody
+	@RequestMapping(value = "/pics")
+	public Map<String,Object> getPics(){
+		Map<String,Object> result = new HashMap<String,Object>();
+		Map<String,Object> map = checkService.getPics();
+		result.put("resourceData", map.get("resourceData"));
+		result.put("status", 1);
+		result.put("message", "查询成功");
+		return result;
+	}
+}

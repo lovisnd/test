@@ -1,0 +1,37 @@
+package com.tiankui.reactService.mapper;
+
+import java.util.List;
+import java.util.Map;
+
+import com.tiankui.reactService.entity.Role;
+import com.tiankui.reactService.entity.User;
+
+public interface UserMapper {
+
+	User getUserByNameAndPassword(User user);
+
+	void setTokenByUser(User userLogin);
+
+	User getTokenUser(String token);
+
+	List<User> getList(Map<String, Object> map);
+
+	User getUserById(String id);
+
+	int updateUser(Map<String, Object> map);
+	
+	int updateUserPassword(Map<String, Object> map);
+
+	int updateUserEnabled(User user);
+
+	int insertUser(User user);
+
+	int delUser(String id);
+
+	int resetPassword(Map<String,Object> hashMap);
+
+	int clearToken(String token);
+
+	List<Role> getRoleByUserId(String id);
+
+}

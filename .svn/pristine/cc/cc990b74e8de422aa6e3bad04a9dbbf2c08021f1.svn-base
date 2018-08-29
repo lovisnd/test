@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.tiankui.reactService.mapper.DictGroupMapper" >
+  <resultMap id="BaseResultMap" type="com.tiankui.reactService.entity.Dict" >
+    <id column="id" property="id" jdbcType="VARCHAR" />
+    <result column="name" property="name" jdbcType="VARCHAR" />
+    <result column="dictGroupId" property="dictGroupId" jdbcType="VARCHAR" />
+    <result column="createTime" property="createTime" jdbcType="BIGINT" />
+    <result column="dictCode" property="dictCode" jdbcType="VARCHAR" />
+  </resultMap>
+  <sql id="Base_Column_List">
+  	id, name, dictGroupId, createTime ,dictCode
+  </sql>
+  
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.String" >
+    select
+    <include refid="Base_Column_List" />
+    from t_s_dict 
+    where dictGroupId = #{id,jdbcType=VARCHAR}
+  </select> 
+  
+  <select id="getById" parameterType="java.lang.String" resultType="com.tiankui.reactService.entity.DictGroup">
+  	select ID,GROUPCODE,GROUPNAME,CREATETIME from T_S_DICT_GROUP where id = #{id}
+  </select>
+
+  <select id="selectAllDict" resultMap="BaseResultMap" >
+    select
+    <include refid="Base_Column_List" />
+    from t_s_dict 
+  </select> 
+  
+  <select id="selectById" resultMap="BaseResultMap" parameterType="java.lang.String" >
+    select
+    <include refid="Base_Column_List" />
+    from t_s_dict 
+    where id = #{id,jdbcType=VARCHAR}
+  </select> 
+  
+  <delete id="delDict" parameterType="java.lang.String">
+  	delete from t_s_dict where id = #{id}
+  </delete>
+  
+    <update id="updateDict" parameterType="java.util.Map">
+  	update 
+  	t_s_dict set name = #{name},createTime = #{createTime}, dictCode = #{dictCode}
+  	 where id = #{id}
+  </update>
+  
+  <insert id="insertDict" parameterType="java.util.Map">
+  	insert into t_s_dict (id,name,dictGroupId,createTime,dictCode)
+  	values (#{id},#{name},#{dictGroupId},#{createTime},#{dictCode})
+  </insert>
+</mapper>

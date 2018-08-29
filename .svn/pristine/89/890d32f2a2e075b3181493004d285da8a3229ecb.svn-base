@@ -1,0 +1,50 @@
+package com.tiankui.reactService.service.impl;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.tiankui.reactService.entity.RoleRight;
+import com.tiankui.reactService.entity.TMenu;
+import com.tiankui.reactService.mapper.RightMapper;
+import com.tiankui.reactService.mapper.TMenuMapper;
+import com.tiankui.reactService.service.IRightService;
+import com.tiankui.reactService.util.UUIDUtil;
+
+@Service
+public class RightServcie implements IRightService {
+
+	@Autowired
+	private RightMapper rightMapper;
+	@Autowired
+	private TMenuMapper menuMapper;
+
+	@Override
+	public List<String> getRightByRole(String roleId) {
+		List<TMenu> list = menuMapper.getRightByRole(roleId);
+		ArrayList<String> idList = new ArrayList<String>();
+		for (TMenu menu : list) {
+			idList.add(menu.getId());
+		}
+		return idList;
+	}
+
+	@Transactional(isolation = Isolation.DEFAULT, propagation = Propagation.REQUIRED)
+	@Override
+	public void addRoleRight(String roleId, String[] rights) {
+		rightMapper.delRightByRoleId(roleId);
+		for (String right : rights) {
+			RoleRight roleRight = new RoleRight();
+			roleRight.setId(UUIDUtil.getUUID());
+			roleRight.setRoleId(roleId);
+			roleRight.setMenuId(right);
+			rightMapper.saveRight(roleRight);
+		}
+	}
+
+}

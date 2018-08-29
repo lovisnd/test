@@ -1,0 +1,58 @@
+package com.tiankui.reactService.service;
+
+import java.util.List;
+import java.util.Map;
+
+import com.tiankui.reactService.entity.User;
+
+public interface IUserService {
+    public User userLogin(String uid,String pwd, String ip);
+
+	public User getTokenUser(String token);
+
+	public List<User> getAllUser(Map<String, Object> map);
+
+	public User getUserById(String id);
+
+	public int modifyUser(String id, Map<String, Object> map);
+
+	public int enabledUser(String id);
+
+	public int addUser(Map<String, Object> map);
+
+	public int delUser(String id);
+
+	public int updateUserSetting(String id, Map<String, Object> map);
+
+	public int resetPassword(String id);
+
+	public int clearToken(String token);
+
+	public int changePassword(Map<String, Object> map);
+
+	/**
+	 * @return 
+	 * 
+	 * @Title: getCountList
+	 * @Description: TODO 查询总记录数
+	 * @param @param map    参数
+	 * @return void    返回类型
+	 * @throws
+	 */
+	public int getCountList(Map<String, Object> map);
+
+	/**
+	 * 查询组织机构下的所有用户
+	 * @param id
+	 * @return
+	 */
+    List<User> queryUserByDeptId(String id);
+
+	/**
+	 * 根据地市查询运维人员
+	 * @return
+	 */
+	List<User> queryOptStaffss();
+
+	public List<User> queryHandlers(String area);
+}

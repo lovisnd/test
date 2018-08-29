@@ -1,0 +1,284 @@
+package com.tiankui.reactService.controller;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.tiankui.reactService.entity.Result;
+import com.tiankui.reactService.entity.ResultArray;
+import com.tiankui.reactService.entity.TSyslog;
+import com.tiankui.reactService.entity.User;
+import com.tiankui.reactService.enums.LogLevel;
+import com.tiankui.reactService.enums.LogType;
+import com.tiankui.reactService.service.ISyslogService;
+import com.tiankui.reactService.service.IUserService;
+import com.tiankui.reactService.util.ExcelUtils;
+import com.tiankui.reactService.util.IPUtil;
+import com.tiankui.reactService.util.ObjectUtil;
+
+@Controller
+@RequestMapping(value = "/api/system/user")
+public class UserController {
+	
+	@Autowired
+	private IUserService userService;
+	@Autowired
+	public ISyslogService syslogService;
+    
+    @ResponseBody
+    @RequestMapping(value = "/list")
+    public Result<List<User>> getUserList(HttpServletRequest request, @RequestParam String token, @RequestBody Map<String,Object> map){
+    	map.put("token", token);
+    	List<User> userList = userService.getAllUser(map);
+    	int count = userService.getCountList(map);
+    	Result<List<User>> result = new Result<List<User>>();
+    	result.setData(userList);
+    	result.setCount(count);
+    	result.setMessage("查询成功！");
+    	result.setStatus(1);
+    	TSyslog tSyslog = new TSyslog(LogType.DATA_QUERY_SUCCESS.getIndex(), LogLevel.INFO.getIndex(),
+				"用户列表数据查询成功！");
+    	syslogService.insert(tSyslog,token,IPUtil.getIpAdrress(request));
+    	return result;
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/query")
+    public ResultArray<User> getUserById(@RequestParam String id){
+    	User resultUser = userService.getUserById(id);
+    	ResultArray<User> result = new ResultArray<User>();
+    	result.setMessage("查询成功！");
+    	if (ObjectUtil.isNotNull(resultUser)) {
+    		User[] users = {resultUser};
+    		result.setData(users);
+    		result.setStatus(1);
+		}else{
+			result.setData(null);
+			result.setStatus(0);
+		}
+    	return result;
+    }
+    
+    @ResponseBody
+    @RequestMapping(value = "/edit")
+    public Result<Integer> editUser(HttpServletRequest request, @RequestParam String token,@RequestParam String id, @RequestBody Map<String, Object> map){
+    	TSyslog tSyslog = new TSyslog();
+    	int resultNum = userService.modifyUser(id,map);
+    	Result<Integer> result = new Result<Integer>();
+    	if (resultNum == 1) {
+			result.setData(resultNum);
+			result.setStatus(1);
+			result.setMessage("修改成功！");
+			tSyslog = new TSyslog(LogType.DATA_UPDATE_SUCCESS.getIndex(), LogLevel.INFO.getIndex(),
+    				"修改用户数据成功！被修改的用户："+userService.getUserById(id).getName());
+		}else{
+			result.setData(resultNum);
+			result.setStatus(0);
+			result.setMessage("修改失败！");
+			tSyslog = new TSyslog(LogType.DATA_UPDATE_FAIL.getIndex(), LogLevel.ERROR.getIndex(),
+    				"修改用户数据失败！被修改的用户："+userService.getUserById(id).getName());
+		}
+    	syslogService.insert(tSyslog,token,IPUtil.getIpAdrress(request));
+    	return result;
+    }
+    
+    @ResponseBody
+    @RequestMapping(value = "/enabled")
+    public Result<Integer> enabledUser(@RequestParam String id){
+    	int resultNum = userService.enabledUser(id);
+    	Result<Integer> result = new Result<Integer>();
+    	if (resultNum == 1) {
+    		result.setData(resultNum);
+    		result.setStatus(1);
+    		result.setMessage("修改成功！");
+    	}else{
+    		result.setData(resultNum);
+    		result.setStatus(0);
+    		result.setMessage("修改失败！");
+    	}
+    	return result;
+    }
+    
+    @ResponseBody
+    @RequestMapping(value = "/add")
+    public Result<Integer> addUser(HttpServletRequest request, @RequestParam String token,@RequestBody Map<String, Object> map){
+    	TSyslog tSyslog = new TSyslog();
+    	int resultNum = userService.addUser(map);
+    	Result<Integer> result = new Result<Integer>();
+    	if (resultNum == 1) {
+    		result.setData(resultNum);
+    		result.setStatus(1);
+    		result.setMessage("添加成功！");
+    		tSyslog = new TSyslog(LogType.DATA_ADD_SUCCESS.getIndex(), LogLevel.INFO.getIndex(),
+    				"添加用户数据成功！被添加用户名："+map.get("name"));
+    	}else{
+    		result.setData(resultNum);
+    		result.setStatus(0);
+    		result.setMessage("添加失败！");
+    		tSyslog = new TSyslog(LogType.DATA_ADD_FAIL.getIndex(), LogLevel.ERROR.getIndex(),
+    				"添加用户数据失败！被添加用户名："+map.get("name"));
+    	}
+		syslogService.insert(tSyslog,token,IPUtil.getIpAdrress(request));
+    	return result;
+    }
+    
+    @ResponseBody
+    @RequestMapping(value = "/del")
+    public Result<Integer> delUser(HttpServletRequest request, @RequestParam String token,@RequestParam String id){
+    	TSyslog tSyslog = new TSyslog();
+    	User delUser = userService.getUserById(id);
+    	int resultNum = userService.delUser(id);
+    	Result<Integer> result = new Result<Integer>();
+    	if (resultNum == 1) {
+    		result.setData(resultNum);
+    		result.setStatus(1);
+    		result.setMessage("删除成功！");
+    		tSyslog = new TSyslog(LogType.DATA_DELETE_SUCCESS.getIndex(), LogLevel.INFO.getIndex(),
+    				"删除用户数据成功！被删除用户名："+delUser.getName());
+    	}else{
+    		result.setData(resultNum);
+    		result.setStatus(0);
+    		result.setMessage("删除失败！被删除用户名："+delUser.getName());
+    		tSyslog = new TSyslog(LogType.DATA_DELETE_FAIL.getIndex(), LogLevel.ERROR.getIndex(),
+    				"删除用户数据失败！被删除用户名："+delUser.getName());
+    	}
+    	syslogService.insert(tSyslog,token,IPUtil.getIpAdrress(request));
+    	return result;
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/setting")
+    public Result<Integer> updateUserSetting(@RequestParam String id,@RequestBody Map<String, Object> map){
+    	int resultNum = userService.updateUserSetting(id,map);
+    	Result<Integer> result = new Result<Integer>();
+    	if (resultNum == 1) {
+    		result.setData(resultNum);
+    		result.setStatus(1);
+    		result.setMessage("修改成功！");
+    	}else{
+    		result.setData(resultNum);
+    		result.setStatus(0);
+    		result.setMessage("修改失败！");
+    	}
+    	return result;
+    }
+    
+    @ResponseBody
+    @RequestMapping(value = "/resetPwd")
+    public Result<Integer> resetPassword(@RequestParam String id){
+    	int resultNum = userService.resetPassword(id);
+    	Result<Integer> result = new Result<Integer>();
+    	if (resultNum == 1) {
+    		result.setData(resultNum);
+    		result.setStatus(1);
+    		result.setMessage("密码重置成功！");
+    	}else{
+    		result.setData(resultNum);
+    		result.setStatus(0);
+    		result.setMessage("密码重置失败！");
+    	}
+    	return result;
+    }
+    
+    @ResponseBody
+    @RequestMapping(value = "/password")
+    public Result<Integer> changePassword(@RequestBody Map<String,Object> map){
+    	int resultNum = userService.changePassword(map);
+    	Result<Integer> result = new Result<Integer>();
+    	if (resultNum == 1) {
+    		result.setData(resultNum);
+    		result.setStatus(1);
+    		result.setMessage("密码修改成功！");
+    	}else if (resultNum == -1){
+    		result.setData(resultNum);
+    		result.setStatus(-1);
+    		result.setMessage("原密碼錯誤！");
+    	}else{
+    		result.setData(resultNum);
+    		result.setStatus(0);
+    		result.setMessage("密码修改失敗！");
+    	}
+    	return result;
+    }
+    
+    @ResponseBody
+	@RequestMapping(value = "/export")
+	public void export(@RequestParam Map<String,Object> map,HttpServletRequest request,HttpServletResponse response){
+		String[] excelHeader = { "用户名", "用户姓名", "部门", "电话", "邮箱", "是否可用", "创建时间"};
+		String[] ds_titles = {"uid", "name", "deptName", "phone", "email", "enabled", "createTime"};  
+		int[] ds_format = { 1, 1, 1, 1, 1, 8, 7};
+		int[] widths = { 256*15, 256*12, 256*20, 256*25, 256*20, 256*12, 256*20};
+		List<Map<String, Object>> mapList = new ArrayList<Map<String, Object>>();
+		List<User> allUser = userService.getExportUser(map);
+		for (User user : allUser) {
+			Map<String, Object> toMap = ObjectUtil.objectToMap(user);
+			mapList.add(toMap);
+		}
+		try {
+			ExcelUtils.export("用户表", "用户", excelHeader, ds_titles, ds_format, widths, mapList, request, response);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 *
+	 * @Title: queryUser
+	 * @Description: TODO 查询角色下的所有用户
+	 * @param @param id
+	 * @param @return    参数
+	 * @return Result<List<User>>    返回类型
+	 * @throws
+	 */
+	@ResponseBody
+	@RequestMapping(value = "/queryDeptUser")
+	public Result<List<User>> queryUser(@RequestParam String id) {
+		List<User> list = userService.queryUserByDeptId(id);
+		Result<List<User>> result = new Result<List<User>>();
+		result.setData(list);
+		result.setStatus(1);
+		result.setMessage("查询成功！");
+		return result;
+	}
+
+	/**
+	 * 查询运维人员
+	 * @return
+	 */
+	@ResponseBody
+	@RequestMapping(value = "/optStaffs")
+	public Result<List<User>> queryOptStaffs(){
+		List<User> list = userService.queryOptStaffss();
+		Result<List<User>> result = new Result<List<User>>();
+		result.setData(list);
+		result.setStatus(1);
+		result.setMessage("查询成功！");
+		return result;
+	}
+    
+	/**
+	 * 根据地市查询运维人员
+	 * @return
+	 */
+	@ResponseBody
+	@RequestMapping(value = "/queryHandler")
+	public Result<List<User>> queryHandlers(@RequestParam String name){
+		List<User> list = userService.queryHandlers(name);
+		Result<List<User>> result = new Result<List<User>>();
+		result.setData(list);
+		result.setStatus(1);
+		result.setMessage("查询成功！");
+		return result;
+	}
+}
